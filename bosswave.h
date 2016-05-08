@@ -2,27 +2,12 @@
 #define BOSSWAVE_H
 
 #include <QQuickItem>
+#include <QTimer>
+#include <QJSValueList>
+#include <QSharedPointer>
 
-class RetVal : public QObject
-{
-    Q_OBJECT
-public:
-  //  Q_PROPERTY(QString val READ getVal)
+#include "utils.h"
 
-    RetVal(QString s, QObject *parent) : QObject(parent)
-    {
-        this->s = s;
-    }
-    ~RetVal()
-    {
-        qDebug() << "retval deconstructed";
-    }
-
-    const QString getVal() {
-        return s;
-    }
-    QString s;
-};
 
 class BW : public QObject
 {
@@ -43,10 +28,32 @@ public:
     // be torn down. Any existing subscriptions / views will not be recreated
     // and the entity must be set again.
     //void setAgent(QString &host, quint16 port);
-
-    RetVal* foo(QObject *caller)
+    void trigLater(function<void(QString s)> cb)
     {
-        return new RetVal(QString("hello"), caller);
+        qDebug() << "norm one";
+        auto leak = new QTimer(this);
+        leak->setSingleShot(true);
+        connect(leak, &QTimer::timeout, this, [=]{
+            cb(QString("hello world"));
+        });
+        leak->start(2000);
+    }
+    Q_INVOKABLE void trigLater(QJSValue v)
+    {
+        qDebug() << "jsv one";
+        trigLater(mkcb<QString>(v));
+        /*
+        Handler<QString> f(v);
+        trigLater(f);
+        if(v.isCallable())
+        {
+            trigLater([=](QString s) mutable
+            {
+                QJSValueList l;
+                l.append(QJSValue(s));
+                v.call(l);
+            });
+        }*/
     }
 
     /**
