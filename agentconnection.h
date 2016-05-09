@@ -8,6 +8,7 @@
 #include <QThread>
 #include <string>
 #include <functional>
+#include <QJSValue>
 
 using std::function;
 
@@ -45,6 +46,16 @@ class Header
 {
 public:
     Header(QString key, char *data, int length) : m_key(key), m_data(data), m_length(length) {}
+    Header(QString key, QString val)
+    {
+        m_key = key;
+
+        QByteArray utf8 = val.toUtf8();
+        m_data = new char[utf8.length()];
+        m_length = utf8.length();
+        memcpy(m_data,utf8.data(), m_length);
+    }
+
     ~Header()
     {
         delete [] m_data;
@@ -95,7 +106,80 @@ protected:
     int m_length;
 };
 
+PayloadObject* createBasePayloadObject(int ponum, QByteArray &contents);
+PayloadObject* createBasePayloadObject(int ponum, const char* dat, int length);
+/*
+class Status
+{
+public:
+    Status(bool iserror, QString msg)
+        : m_msg(msg), m_iserror(iserror)
+    {
 
+    }
+
+    bool isError()
+    {
+        return m_iserror;
+    }
+    static Status okay()
+    {
+        return Status(false,"");
+    }
+    QString msg()
+    {
+        return m_msg;
+    }
+
+    static Status error(QString msg)
+    {
+        return Status(true, msg);
+    }
+private:
+    QString m_msg;
+    bool m_iserror;
+};
+*/
+/*
+template <typename ...Tz>
+using Res = std::function<void(Tz...)>;
+*/
+
+template <typename ...Tz>
+class Res
+{
+public:
+    Res()
+    {
+        wrap = [](Tz...){};
+    }
+    Res(std::function<void(Tz...)> cb)
+    {
+        wrap = cb;
+    }
+    template <typename F>
+    Res(F f) : Res(std::function<void(Tz...)>(f)) {}
+    Res(QJSValue callback)
+    {
+        qDebug() << "calling res with QJS";
+        if (!callback.isCallable())
+        {
+            qFatal("Trying to construct Res with non function JS Value");
+        }
+        wrap = [=](Tz... args) mutable
+        {
+            QJSValueList l;
+            convert(l, args...);
+            callback.call(l);
+        };
+    }
+    void operator() (Tz ...args) const
+    {
+        wrap(args...);
+    }
+private:
+    std::function<void(Tz...)> wrap;
+};
 
 class Frame
 {
@@ -128,10 +212,15 @@ public:
     constexpr static const char* RESOLVE_REGISTRY = "rsro";
     constexpr static const char* UPDATE_SRV       = "usrv";
     constexpr static const char* LIST_DRO         = "ldro";
+
+    constexpr static const char* RESPONSE = "resp";
+    constexpr static const char* RESULT   = "rslt";
+
     Frame(AgentConnection *agent, const char* type, quint32 seqno)
         :agent(agent), m_seqno(seqno)
     {
         strncpy(&m_type[0],type,4);
+        m_type[4] = 0;
         pos = QList<PayloadObject*>();
         headers = QList<Header*>();
         ros = QList<RoutingObject*>();
@@ -151,6 +240,10 @@ public:
     {
         return strcmp(m_type, type) == 0;
     }
+    const char* type()
+    {
+        return &m_type[0];
+    }
 
     //Returns false if not there
     bool getHeaderB(QString key, bool *valid = NULL);
@@ -159,6 +252,20 @@ public:
     //Returns -1 if not there
     int getHeaderI(QString key, bool *valid = NULL);
 
+    template <typename ...Tz> bool checkResponse(Res<QString,Tz...> cb, Tz ...args)
+    {
+        Q_ASSERT(isType(RESPONSE));
+        bool ok;
+        auto status = getHeaderS("status", &ok);
+        Q_ASSERT(ok);
+        if (status == "okay")
+        {
+            return true;
+        }
+        cb(getHeaderS("reason"), args...);
+        return false;
+    }
+
     void addPayloadObject(PayloadObject *po)
     {
         pos.append(po);
@@ -166,6 +273,11 @@ public:
     void addHeader(Header *h)
     {
         headers.append(h);
+    }
+    void addHeader(QString key, QString val)
+    {
+        Header* h = new Header(key, val);
+        addHeader(h);
     }
     void addRoutingObject(RoutingObject * ro)
     {
@@ -183,6 +295,9 @@ private:
 
 typedef QSharedPointer<Frame> PFrame;
 
+Q_DECLARE_METATYPE(PFrame)
+Q_DECLARE_METATYPE(function<void(PFrame,bool)>)
+
 class AgentConnection : public QObject
 {
     Q_OBJECT
@@ -190,19 +305,25 @@ public:
     explicit AgentConnection(QString target, quint16 port, QObject *parent = 0)
         : QObject(parent)
     {
+        qRegisterMetaType<PFrame>();
+        qRegisterMetaType<function<void(PFrame,bool)>>();
         seqno = 1;
         have_received_helo = false;
         outstanding = QHash<quint32, function<void(PFrame,bool)>>();
         //All our stuff will happen on this thread
         m_thread = new QThread(this);
         m_thread->start();
+        m_desthost = target;
+        m_destport = port;
         moveToThread(m_thread);
+
+     /*
         sock = new QTcpSocket(this);
         connect(sock, &QTcpSocket::connected, this, &AgentConnection::onConnect);
         connect(sock,static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
                 this, &AgentConnection::onError);
         connect(sock, &QTcpSocket::readyRead, this, &AgentConnection::onArrivedData);
-        sock->connectToHost(target, port);
+        sock->connectToHost(target, port);*/
     }
 
     bool waitForConnection()
@@ -210,6 +331,12 @@ public:
         //TODO apparently this does not work well on windows
         return sock->waitForConnected();
     }
+    void beginConnection()
+    {
+        //We might be on another thread.
+        QMetaObject::invokeMethod(this,"initSock");
+    }
+
     void transact(PFrame f, function<void(PFrame f, bool final)> cb);
     void transact(QObject *to, PFrame f, function<void(PFrame f, bool final)> cb);
     PFrame newFrame(const char *type, quint32 seqno=0);
@@ -226,13 +353,16 @@ private:
     QHash<quint32, function<void(PFrame f, bool final)>> outstanding;
     void onArrivedFrame(PFrame f);
     bool have_received_helo;
+    QString m_desthost;
+    qint16 m_destport;
 private slots:
     void onConnect();
     void onError();
     void onArrivedData();
+    void initSock();
     void doTransact(PFrame f, function<void(PFrame,bool)> cb);
 signals:
-    void agentReady();
+    void agentChanged(bool connected, QString msg);
 
 };
 

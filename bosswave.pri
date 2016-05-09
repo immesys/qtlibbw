@@ -1,7 +1,7 @@
 QT += qml quick
 CONFIG += qt plugin c++11
 
-INCLUDEPATH += $$PWD
+INCLUDEPATH += $$PWD 
 
 SOURCES += \
     $$PWD/bosswave_plugin.cpp \
@@ -14,4 +14,7 @@ HEADERS += \
     $$PWD/bosswave.h \
     $$PWD/libbw.h \
     $$PWD/utils.h \
-    $$PWD/agentconnection.h
+    $$PWD/agentconnection.h \
+    $$PWD/allocations.h
+
+include($$PWD/vendor/qmsgpack/qmsgpack.pri)

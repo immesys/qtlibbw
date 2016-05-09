@@ -25,11 +25,13 @@ quint32 AgentConnection::getSeqNo()
 }
 void AgentConnection::onConnect()
 {
-
+    qDebug() << "socket connected";
+    emit agentChanged(true, "");
 }
 void AgentConnection::onError()
 {
-
+    emit agentChanged(false, sock->errorString());
+    qFatal("some kind of socket error or something...");
 }
 void AgentConnection::readRO(QStringList &tokens)
 {
@@ -84,12 +86,14 @@ void AgentConnection::readKV(QStringList &tokens)
 }
 void AgentConnection::onArrivedData()
 {
+    qDebug() << "got some data";
     if (curFrame.isNull())
     {
+        qDebug() << "making a new frame";
         //New frame, read the header
         if (sock->bytesAvailable() < 27)
             return; //Wait until we have the full header
-        char hdr[27];
+        char hdr[28];
         qint64 l = sock->read(hdr,27);
         Q_ASSERT(l==27);
         //Remember header is
@@ -97,9 +101,12 @@ void AgentConnection::onArrivedData()
         //CMMD 10DIGITLEN 10DIGITSEQ\n
         hdr[4]=0;
         hdr[15]=0;
-        int length = QString(&hdr[4]).toInt(); //not currently used
-        int seq = QString(&hdr[15]).toInt();
-        curFrame = newFrame(hdr, seq);
+        hdr[26]=0;//Kill the \n too
+        int length = QString(&hdr[5]).toInt(); //not currently used
+        int seq = QString(&hdr[16]).toInt();
+        qDebug() << "deconstructed len, seq as" << length << seq;
+        qDebug() << "from" << QString(&hdr[5]) << QString(&hdr[16]);
+        curFrame = newFrame(&hdr[0], seq);
         waitingFor = length;
     }
     //We have a frame, we are loading parts of it
@@ -111,24 +118,47 @@ void AgentConnection::onArrivedData()
     while(1) {
         auto linelen = sock->readLine(linebuf, 256);
         Q_ASSERT(linelen < 255);
+        Q_ASSERT(linelen > 0);
+        linebuf[linelen-1] = 0; //kill the newline
         QString line(linebuf);
         QStringList tokens = line.split(' ');
+        qDebug() << "tokens: " << tokens;
         if (tokens[0] == "kv") {
+            qDebug() << "read kv";
             readKV(tokens);
         }else if (tokens[0] == "po") {
+            qDebug() << "read po";
             readPO(tokens);
         }else if (tokens[0] == "ro") {
+            qDebug() << "read ro";
             readRO(tokens);
         }else if (tokens[0] == "end") {
             //This frame is finished
+            qDebug() << "frame finished";
             auto nf = curFrame;
             curFrame.reset();
             onArrivedFrame(nf);
+            QMetaObject::invokeMethod(this,"onArrivedData",Qt::QueuedConnection);
+            return;
         }
     }
 }
+
+void AgentConnection::initSock()
+{
+    qDebug() << "initializing socket";
+    sock = new QTcpSocket(this);
+    connect(sock, &QTcpSocket::connected, this, &AgentConnection::onConnect);
+    connect(sock,static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
+            this, &AgentConnection::onError);
+    connect(sock, &QTcpSocket::readyRead, this, &AgentConnection::onArrivedData);
+    sock->connectToHost(m_desthost, m_destport);
+}
+
+
 void AgentConnection::onArrivedFrame(PFrame f)
 {
+    qDebug()<<"frame arrived with seqno"<<f->seqno();
     //We need to determine which transaction this belongs to, and forward the frame there.
     if (f->isType(Frame::HELLO))
     {
@@ -136,11 +166,15 @@ void AgentConnection::onArrivedFrame(PFrame f)
         have_received_helo = true;
         qDebug() << "GOT HELO";
         return;
+    } else {
+        qDebug() << "NOT HELO" << f->type();
     }
+
     Q_ASSERT(outstanding.contains(f->seqno()));
-    bool final, present = f->getHeaderB("finished");
-    Q_ASSERT(present);
-    outstanding.value(f->seqno())(f,final);
+    bool present;
+    bool final = f->getHeaderB("finished", &present);
+    Q_ASSERT_X(present, "frame decode", "finished kv missing");
+    outstanding.value(f->seqno())(f, final);
     if (final) {
         outstanding.remove(f->seqno());
     }
@@ -269,4 +303,16 @@ int Header::asInt()
 QString Header::asString()
 {
     return QString::fromUtf8(m_data,m_length);
+}
+
+PayloadObject* createBasePayloadObject(int ponum, QByteArray &contents)
+{
+    return createBasePayloadObject(ponum, contents.data(), contents.length());
+}
+
+PayloadObject* createBasePayloadObject(int ponum, const char* dat, int length)
+{
+    char* datcopy = new char [length];
+    memcpy(datcopy,dat,length);
+    return PayloadObject::load(ponum, datcopy, length);
 }
