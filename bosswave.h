@@ -81,16 +81,44 @@ public:
 
     //void publish(QString uri, PayloadObject *po, Res<Status> on_done);
 
+    /**
+     * @brief publish a bosswave message
+     * @param uri the URI to publish to
+     * @param poz the payload objects to publish
+     * @param on_done a function to call when the operation is complete.
+     *
+     * @since 1.0
+     */
     void publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done = _nop_res_status);
 
     /**
      * @brief Publish a MsgPack object to the given URI
+     *
+     * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, Res<QString> on_done = _nop_res_status);
+
+    /**
+     * @brief Publish a MsgPack object to the given URI
+     *
+     * @since 1.0
+     */
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, Res<QString> on_done = _nop_res_status);
+
+    /**
+     * @brief Publish a MsgPack object to the given URI, with a javascript callback
+     *
+     * @since 1.0
+     */
     Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, QJSValue on_done);
+
+    /**
+     * @brief Publish a MsgPack object to the given URI, with a javascript callback
+     *
+     * @since 1.0
+     */
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, QJSValue on_done);
-   // void publishMsgPack(QString uri, std::initializer_list<std::pair<QString, QVariant>> msg);
+
 
     //void subscribe(QString uri, Res<Status> on_done, Res<PMessage> onmsg);
     /**
