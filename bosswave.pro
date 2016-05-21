@@ -1,5 +1,5 @@
 TEMPLATE = lib
-TARGET = BOSSWave
+TARGET = bosswave
 TARGET = $$qtLibraryTarget($$TARGET)
 uri = io.bw2
 

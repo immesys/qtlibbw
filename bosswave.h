@@ -8,7 +8,15 @@
 
 #include "utils.h"
 #include "agentconnection.h"
+#include "message.h"
 
+/**
+ * \defgroup bw BOSSWAVE Agent API
+ * Functions for interacting with the local bosswave agent
+ *
+ * \defgroup wview Wavelet Viewer API
+ * Functions for interacting with the wavelet viewer
+ */
 
 class BW : public QObject
 {
@@ -27,34 +35,34 @@ public:
 
     static int fromDF(QString df);
 
-    //void setAgent(QString &host, quint16 port);
-    void trigLater(function<void(QString s)> cb)
-    {
-        qDebug() << "norm one";
-        auto leak = new QTimer(this);
-        leak->setSingleShot(true);
-        connect(leak, &QTimer::timeout, this, [=]{
-            cb(QString("hello world"));
-        });
-        leak->start(2000);
-    }
-    Q_INVOKABLE void trigLater(QJSValue v)
-    {
-        qDebug() << "jsv one";
-        trigLater(mkcb<QString>(v));
-        /*
-        Handler<QString> f(v);
-        trigLater(f);
-        if(v.isCallable())
-        {
-            trigLater([=](QString s) mutable
-            {
-                QJSValueList l;
-                l.append(QJSValue(s));
-                v.call(l);
-            });
-        }*/
-    }
+//    //void setAgent(QString &host, quint16 port);
+//    void trigLater(function<void(QString s)> cb)
+//    {
+//        qDebug() << "norm one";
+//        auto leak = new QTimer(this);
+//        leak->setSingleShot(true);
+//        connect(leak, &QTimer::timeout, this, [=]{
+//            cb(QString("hello world"));
+//        });
+//        leak->start(2000);
+//    }
+//    Q_INVOKABLE void trigLater(QJSValue v)
+//    {
+//        qDebug() << "jsv one";
+//        trigLater(mkcb<QString>(v));
+//        /*
+//        Handler<QString> f(v);
+//        trigLater(f);
+//        if(v.isCallable())
+//        {
+//            trigLater([=](QString s) mutable
+//            {
+//                QJSValueList l;
+//                l.append(QJSValue(s));
+//                v.call(l);
+//            });
+//        }*/
+//    }
 
     // Set the agent to the given host and port. Any existing connection will
     // be torn down. Any existing subscriptions / views will not be recreated
@@ -65,6 +73,9 @@ public:
     /**
      * @brief Set the entity
      * @param filename a BW entity file to use
+     *
+     * @ingroup bw
+     * @since 1.0
      */
     void setEntityFile(QString filename, Res<QString> on_done = _nop_res_status);
 
@@ -76,10 +87,19 @@ public:
      * must be stripped as it is an RO type indicator.
      *
      * @see setEntityFile
+     * @ingroup bw
+     * @since 1.0
      */
     void setEntity(QByteArray &contents, Res<QString> on_done = _nop_res_status);
 
-    //void publish(QString uri, PayloadObject *po, Res<Status> on_done);
+    /**
+     * @brief Set the entity by reading the file denoted by $BW2_DEFAULT_ENTITY
+     *
+     * @see setEntityFile
+     * @ingroup bw
+     * @since 1.0
+     */
+    void setEntityFromEnviron(Res<QString> on_done = _nop_res_status);
 
     /**
      * @brief publish a bosswave message
@@ -87,6 +107,7 @@ public:
      * @param poz the payload objects to publish
      * @param on_done a function to call when the operation is complete.
      *
+     * @ingroup bw
      * @since 1.0
      */
     void publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done = _nop_res_status);
@@ -94,6 +115,7 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI
      *
+     * @ingroup bw
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, Res<QString> on_done = _nop_res_status);
@@ -101,6 +123,7 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI
      *
+     * @ingroup bw
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, Res<QString> on_done = _nop_res_status);
@@ -115,10 +138,32 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI, with a javascript callback
      *
+     * @ingroup bw
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, QJSValue on_done);
 
+    /**
+     * @brief Query the given URI pattern and return all messages that match
+     * @param uri the URI to query
+     * @param on_done A callback receiving the status list of messages
+     *
+     * @ingroup bw
+     * @since 1.0
+     */
+    void query(QString uri, Res<QString, QList<PMessage>> on_done);
+
+    /**
+     * @brief Loads a wavelet at a given URI
+     * @param uri the URI to load
+     *
+     * This first checks for <uri>/i.wavelet and if that is not found it
+     * checks for the metadata key "app" and will load that URI
+     *
+     * @ingroup wview
+     * @since 1.0
+     */
+    void loadWavelet(QString uri);
 
     //void subscribe(QString uri, Res<Status> on_done, Res<PMessage> onmsg);
     /**

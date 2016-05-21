@@ -60,6 +60,16 @@ int BW::fromDF(QString df)
     return rv;
 }
 
+void BW::setEntityFromEnviron(Res<QString> on_done)
+{
+    QByteArray a = qgetenv("BW2_DEFAULT_ENTITY");
+    if (a.isEmpty()) {
+        on_done("BW2_DEFAULT_ENTITY not set");
+        return;
+    }
+    setEntityFile(a.data(), on_done);
+}
+
 void BW::connectAgent(QString host, quint16 port)
 {
     if (m_agent != NULL)
