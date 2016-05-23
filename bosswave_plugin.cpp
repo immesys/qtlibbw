@@ -2,7 +2,7 @@
 #include "bosswave.h"
 
 #include <qqml.h>
-
+/*
 void BOSSWAVEPlugin::registerTypes(const char *uri)
 {
      Q_ASSERT(uri == QStringLiteral("BOSSWAVE"));
@@ -11,3 +11,4 @@ void BOSSWAVEPlugin::registerTypes(const char *uri)
     qmlRegisterSingletonType<BW>(uri, 1, 0, "BW", &BW::qmlSingleton);
 }
 
+*/

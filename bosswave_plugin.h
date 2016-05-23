@@ -2,7 +2,7 @@
 #define BOSSWAVE_PLUGIN_H
 
 #include <QQmlExtensionPlugin>
-
+/*
 class BOSSWAVEPlugin : public QQmlExtensionPlugin
 {
     Q_OBJECT
@@ -11,5 +11,5 @@ class BOSSWAVEPlugin : public QQmlExtensionPlugin
 public:
     void registerTypes(const char *uri);
 };
-
+*/
 #endif // BOSSWAVE_PLUGIN_H

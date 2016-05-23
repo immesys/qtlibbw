@@ -11,7 +11,7 @@ class Message
 {
 public:
     Message();
-    PMessage fromFrame(PFrame f);
+    static PMessage fromFrame(PFrame f);
     QList<PayloadObject*> POs();
     QList<PayloadObject*> FilterPOs(int ponum);
 

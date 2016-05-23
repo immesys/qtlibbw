@@ -86,10 +86,8 @@ void AgentConnection::readKV(QStringList &tokens)
 }
 void AgentConnection::onArrivedData()
 {
-    qDebug() << "got some data";
     if (curFrame.isNull())
     {
-        qDebug() << "making a new frame";
         //New frame, read the header
         if (sock->bytesAvailable() < 27)
             return; //Wait until we have the full header
@@ -104,8 +102,6 @@ void AgentConnection::onArrivedData()
         hdr[26]=0;//Kill the \n too
         int length = QString(&hdr[5]).toInt(); //not currently used
         int seq = QString(&hdr[16]).toInt();
-        qDebug() << "deconstructed len, seq as" << length << seq;
-        qDebug() << "from" << QString(&hdr[5]) << QString(&hdr[16]);
         curFrame = newFrame(&hdr[0], seq);
         waitingFor = length;
     }
@@ -122,19 +118,14 @@ void AgentConnection::onArrivedData()
         linebuf[linelen-1] = 0; //kill the newline
         QString line(linebuf);
         QStringList tokens = line.split(' ');
-        qDebug() << "tokens: " << tokens;
         if (tokens[0] == "kv") {
-            qDebug() << "read kv";
             readKV(tokens);
         }else if (tokens[0] == "po") {
-            qDebug() << "read po";
             readPO(tokens);
         }else if (tokens[0] == "ro") {
-            qDebug() << "read ro";
             readRO(tokens);
         }else if (tokens[0] == "end") {
             //This frame is finished
-            qDebug() << "frame finished";
             auto nf = curFrame;
             curFrame.reset();
             onArrivedFrame(nf);
@@ -146,7 +137,6 @@ void AgentConnection::onArrivedData()
 
 void AgentConnection::initSock()
 {
-    qDebug() << "initializing socket";
     sock = new QTcpSocket(this);
     connect(sock, &QTcpSocket::connected, this, &AgentConnection::onConnect);
     connect(sock,static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
@@ -158,16 +148,12 @@ void AgentConnection::initSock()
 
 void AgentConnection::onArrivedFrame(PFrame f)
 {
-    qDebug()<<"frame arrived with seqno"<<f->seqno();
     //We need to determine which transaction this belongs to, and forward the frame there.
     if (f->isType(Frame::HELLO))
     {
         Q_ASSERT(!have_received_helo);
         have_received_helo = true;
-        qDebug() << "GOT HELO";
         return;
-    } else {
-        qDebug() << "NOT HELO" << f->type();
     }
 
     Q_ASSERT(outstanding.contains(f->seqno()));

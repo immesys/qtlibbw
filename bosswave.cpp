@@ -146,6 +146,35 @@ void BW::publishMsgPack(QString uri, QString PODF, QVariantMap val, QJSValue on_
     publishMsgPack(uri, PODF, val, Res<QString>(on_done));
 }
 
+void BW::query(QString uri, Res<QString, QList<PMessage> > on_done)
+{
+    auto f = agent()->newFrame(Frame::QUERY);
+    auto lst = new QList<PMessage>();
+    f->addHeader("autochain","true");
+    f->addHeader("uri", uri);
+    f->addHeader("doverify","true");
+    f->addHeader("unpack", "true");
+    agent()->transact(this, f, [=](PFrame f, bool final)
+    {
+        if (f->isType(Frame::RESPONSE))
+        {
+            f->checkResponse(on_done, QList<PMessage>());
+        }
+        else
+        {
+            if (final)
+            {
+                on_done("", *lst);
+                delete lst;
+            }
+            else
+            {
+                lst->append(Message::fromFrame(f));
+            }
+        }
+    });
+}
+
 /*
 void BW::publishMsgPack(QString uri, std::initializer_list<std::pair<QString, QVariant>> msg)
 {

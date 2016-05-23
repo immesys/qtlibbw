@@ -12,6 +12,7 @@
 
 using std::function;
 
+class Message;
 class AgentConnection;
 
 class RoutingObject
@@ -291,6 +292,8 @@ private:
     QList<PayloadObject*> pos;
     QList<RoutingObject*> ros;
     QList<Header*> headers;
+
+    friend Message;
 };
 
 typedef QSharedPointer<Frame> PFrame;
