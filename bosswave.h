@@ -10,6 +10,49 @@
 #include "agentconnection.h"
 #include "message.h"
 
+/*! \mainpage BOSSWAVE Wavelet Viewer
+ *
+ * \section intro_sec Introduction
+ *
+ * This contains the documentation for the BOSSWAVE Wavelet API.
+ *
+ * The functions are grouped into two modules, those accessible only from C++,
+ * and those accessible from both C++ and QML.
+ *
+ * To view the documentation, click the "Wavelet API overview" tab above.
+ */
+
+/**
+ * \defgroup cpp C++ API
+ * \brief Functions for interacting with BOSSWAVE from C++ code
+ *
+ * These functions are not accessible from Wavelets, but for programs that
+ * are fully standalone (compiled against libqtbw) they can be used to obtain
+ * functionality not found in the QML API. All the QML functions can also be
+ * invoked from C++.
+ */
+
+/**
+ * \defgroup qml QML API
+ * \brief Functions accessible to Wavelets
+ *
+ * These functions can be used in Wavelets by importing the BOSSWAVE module:
+ * \code{.qml}
+ * import BOSSWAVE 1.0
+ *
+ * Button {
+ *   onClicked:
+ *   {
+ *     BW.publishMsgPack("my/url", "2.0.7.2", {"key":"value"},
+ *       function(status) {
+ *         console.log("publish status:", status);
+ *       });
+ *   }
+ * }
+ * \endcode
+ *
+ * They can also be used in C++ via normal function invocations.
+ */
 
 class BW : public QObject
 {
@@ -67,6 +110,7 @@ public:
      * @brief Set the entity
      * @param filename a BW entity file to use
      *
+     * @ingroup cpp
      * @since 1.0
      */
     void setEntityFile(QString filename, Res<QString> on_done = _nop_res_status);
@@ -111,6 +155,7 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI
      *
+     * @ingroup qml
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, Res<QString> on_done = _nop_res_status);
