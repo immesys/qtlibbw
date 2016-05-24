@@ -66,9 +66,23 @@ public:
     // This is used by the QML engine to instantiate the bosswave singleton
     static QObject *qmlSingleton(QQmlEngine *engine, QJSEngine *scriptEngine);
 
-    // This can be used to obtain references to the BW object
+    /**
+     * @brief This can be used to obtain references to the BW object
+     * @return The BW2 singleton instance
+     *
+     * @ingroup cpp
+     * @since 1.0
+     */
     static BW *instance();
 
+    /**
+     * @brief Get the integer PO Number from dot form
+     * @param df The dot form, e.g. 2.0.3.1
+     * @return The integer PONum
+     *
+     * @ingroup cpp
+     * @since 1.0
+     */
     static int fromDF(QString df);
 
 //    //void setAgent(QString &host, quint16 port);
@@ -104,6 +118,19 @@ public:
     // be torn down. Any existing subscriptions / views will not be recreated
     // and the entity must be set again. agentConnected() will be signalled
     // when this process is complete
+    /**
+     * @brief Connect to a BOSSWAVE agent
+     * @param host The IP address/hostname to connect to
+     * @param port The port (generally 28589)
+     *
+     * Set the agent to the given host and port. Any existing connection will
+     * be torn down. Any existing subscriptions / views will not be recreated
+     * and the entity must be set again. agentConnected() will be signalled
+     * when this process is complete
+     *
+     * @ingroup cpp
+     * @since 1.0
+     */
     void connectAgent(QString host, quint16 port);
 
     /**
@@ -123,6 +150,7 @@ public:
      * must be stripped as it is an RO type indicator.
      *
      * @see setEntityFile
+     * @ingroup cpp
      * @since 1.0
      */
     void setEntity(QByteArray &contents, Res<QString> on_done = _nop_res_status);
@@ -131,6 +159,7 @@ public:
      * @brief Set the entity by reading the file denoted by $BW2_DEFAULT_ENTITY
      *
      * @see setEntityFile
+     * @ingroup cpp
      * @since 1.0
      */
     void setEntityFromEnviron(Res<QString> on_done = _nop_res_status);
@@ -141,6 +170,7 @@ public:
      * @param poz the payload objects to publish
      * @param on_done a function to call when the operation is complete.
      *
+     * @ingroup cpp
      * @since 1.0
      */
     void publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done = _nop_res_status);
@@ -148,6 +178,7 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI
      *
+     * @ingroup qml
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, Res<QString> on_done = _nop_res_status);
@@ -163,6 +194,7 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI, with a javascript callback
      *
+     * @ingroup qml
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, QJSValue on_done);
@@ -170,6 +202,7 @@ public:
     /**
      * @brief Publish a MsgPack object to the given URI, with a javascript callback
      *
+     * @ingroup qml
      * @since 1.0
      */
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, QJSValue on_done);
@@ -179,6 +212,7 @@ public:
      * @param uri the URI to query
      * @param on_done A callback receiving the status list of messages
      *
+     * @ingroup cpp
      * @since 1.0
      */
     void query(QString uri, Res<QString, QList<PMessage>> on_done);
@@ -199,6 +233,11 @@ public:
     //void acceptDesignatedRouterOffer(int account, QString &vk);
 
 signals:
+    /**
+     * @brief Fired when the BOSSWAVE agent connection changes (connect or disconnect)
+     * @param success True if ok, false otherwise
+     * @param msg Empty if ok, error message otherwise
+     */
     void agentChanged(bool success, QString msg);
 
 private:
