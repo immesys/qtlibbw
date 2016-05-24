@@ -4,6 +4,7 @@
 #include <QJSValue>
 #include <QJSValueList>
 #include <functional>
+#include <QQmlEngine>
 
 using std::function;
 
@@ -16,6 +17,16 @@ template <typename F> void convert(QJSValueList &l, F f)
 {
     l.append(QJSValue(f));
 }
+template <typename F, typename ...R> void convertE(QQmlEngine* e, QJSValueList &l, F f, R... rest)
+{
+    l.append(e->toScriptValue(f));
+    convertE(l, rest...);
+}
+template <typename F> void convertE(QQmlEngine* e, QJSValueList &l, F f)
+{
+    l.append(e->toScriptValue(f));
+}
+/*
 template<typename ...Tz> function<void(Tz...)> mkcb(QJSValue callback)
 {
     if (!callback.isCallable())
@@ -28,7 +39,7 @@ template<typename ...Tz> function<void(Tz...)> mkcb(QJSValue callback)
         convert(l, args...);
         callback.call(l);
     };
-}
+}*/
 
 
 #if 0

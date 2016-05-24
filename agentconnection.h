@@ -9,11 +9,13 @@
 #include <string>
 #include <functional>
 #include <QJSValue>
+#include <QQmlEngine>
 
 using std::function;
 
-class Message;
-class AgentConnection;
+QT_FORWARD_DECLARE_CLASS(PayloadObject)
+QT_FORWARD_DECLARE_CLASS(Message)
+QT_FORWARD_DECLARE_CLASS(AgentConnection)
 
 class RoutingObject
 {
@@ -81,34 +83,7 @@ private:
     int m_length;
 };
 
-class PayloadObject
-{
-public:
-    ~PayloadObject()
-    {
-        delete [] m_data;
-    }
-    static PayloadObject* load(int ponum, char* dat, int length);
-    int ponum()
-    {
-        return m_ponum;
-    }
-    const char* content ()
-    {
-        return m_data;
-    }
-    int length() {
-        return m_length;
-    }
-protected:
-    PayloadObject(int ponum, char *data, int length) : m_ponum(ponum), m_data(data), m_length(length) {}
-    int m_ponum;
-    char *m_data;
-    int m_length;
-};
 
-PayloadObject* createBasePayloadObject(int ponum, QByteArray &contents);
-PayloadObject* createBasePayloadObject(int ponum, const char* dat, int length);
 /*
 class Status
 {
@@ -174,6 +149,20 @@ public:
             callback.call(l);
         };
     }
+    Res(QQmlEngine* e, QJSValue callback)
+    {
+        qDebug() << "calling res with QJS";
+        if (!callback.isCallable())
+        {
+            qFatal("Trying to construct Res with non function JS Value");
+        }
+        wrap = [=](Tz... args) mutable
+        {
+            QJSValueList l;
+            convertE(e, l, args...);
+            callback.call(l);
+        };
+    }
     void operator() (Tz ...args) const
     {
         wrap(args...);
@@ -226,12 +215,8 @@ public:
         headers = QList<Header*>();
         ros = QList<RoutingObject*>();
     }
-    ~Frame()
-    {
-        qDeleteAll(pos);
-        qDeleteAll(headers);
-        qDeleteAll(ros);
-    }
+    ~Frame();
+
     quint32 seqno()
     {
         return m_seqno;

@@ -1,5 +1,5 @@
 #include "agentconnection.h"
-
+#include "message.h"
 
 #include <QTimer>
 
@@ -12,12 +12,12 @@ PFrame AgentConnection::newFrame(const char *type, quint32 seqno)
     return QSharedPointer<Frame>(rv);
 }
 
-// This will eventually construct subclasses too
-PayloadObject* PayloadObject::load(int ponum, char* dat, int size)
+Frame::~Frame()
 {
-    return new PayloadObject(ponum, dat, size);
+    qDeleteAll(pos);
+    qDeleteAll(headers);
+    qDeleteAll(ros);
 }
-
 
 quint32 AgentConnection::getSeqNo()
 {
@@ -291,14 +291,3 @@ QString Header::asString()
     return QString::fromUtf8(m_data,m_length);
 }
 
-PayloadObject* createBasePayloadObject(int ponum, QByteArray &contents)
-{
-    return createBasePayloadObject(ponum, contents.data(), contents.length());
-}
-
-PayloadObject* createBasePayloadObject(int ponum, const char* dat, int length)
-{
-    char* datcopy = new char [length];
-    memcpy(datcopy,dat,length);
-    return PayloadObject::load(ponum, datcopy, length);
-}

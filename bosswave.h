@@ -217,20 +217,50 @@ public:
      */
     void query(QString uri, Res<QString, QList<PMessage>> on_done);
 
-    //void subscribe(QString uri, Res<Status> on_done, Res<PMessage> onmsg);
     /**
-     * @brief Accept a DRO
-     * @param account the account to bankroll the operation
-     * @param vk the verifying key to accept an offer from
-     * @param ns the namespace that is accepting an offer
+     * @brief Subscribe to the given URI
+     * @param uri The URI to subscribe to
+     * @param on_msg A callback for each received message
+     * @param on_done The callback to be executed with the error message. Empty implies success
+     *
+     * @ingroup cpp
+     * @since 1.1
      */
-    //void acceptDesignatedRouterOffer(int account, QString &vk, Entity &ns);
+    void subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done = _nop_res_status);
+
     /**
-     * @brief Accept a DRO with current Entity
-     * @param account the account to bankroll the operation
-     * @param vk the verifying key to accept an offer from
+     * @brief Subscribe to a MsgPack resource
+     * @param uri The resource to subscribe to
+     * @param on_msg The callback to be called for each message
+     * @param on_done The callback to be executed with the error message. Empty implies success.
+     *
+     * This will unpack msgpack PO's and pass them to the on_msg callback
+     *
+     * @ingroup qml
+     * @since 1.1
      */
-    //void acceptDesignatedRouterOffer(int account, QString &vk);
+    Q_INVOKABLE void subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done = _nop_res_status);
+
+    /**
+     * @brief Subscribe to a MsgPack resource
+     * @param uri The resource to subscribe to
+     * @param on_msg The callback to be called for each message (javascript function)
+     *
+     * @ingroup qml
+     * @since 1.1
+     */
+    Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg);
+
+    /**
+     * @brief Subscribe to a MsgPack resource
+     * @param uri The resource to subscribe to
+     * @param on_msg The callback to be called for each message (javascript function)
+     * @param on_done The callback to be executed with the error message. "" implies success.
+     *
+     * @ingroup qml
+     * @since 1.1
+     */
+    Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done);
 
 signals:
     /**
@@ -245,6 +275,11 @@ private:
     QJSEngine *jsengine;
     AgentConnection *agent();
     AgentConnection *m_agent;
+
+    template <typename ...Tz> Res<Tz...> ERes(QJSValue callback)
+    {
+        return Res<Tz...>(engine, callback);
+    }
 
     static Res<QString> _nop_res_status;
 };

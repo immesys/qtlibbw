@@ -3,6 +3,7 @@
 #include "allocations.h"
 
 #include <QFile>
+#include <QQmlEngine>
 
 #include <msgpack.h>
 
@@ -22,8 +23,6 @@ BW::~BW()
 
 QObject *BW::qmlSingleton(QQmlEngine *engine, QJSEngine *scriptEngine)
 {
-    Q_UNUSED(engine);
-    Q_UNUSED(scriptEngine);
     auto rv = BW::instance();
     rv->engine = engine;
     rv->jsengine = scriptEngine;
@@ -175,9 +174,44 @@ void BW::query(QString uri, Res<QString, QList<PMessage> > on_done)
     });
 }
 
-/*
-void BW::publishMsgPack(QString uri, std::initializer_list<std::pair<QString, QVariant>> msg)
+void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done)
 {
-    publishMsgPack(uri, QVariantMap(msg));
+    auto f = agent()->newFrame(Frame::SUBSCRIBE);
+    f->addHeader("autochain","true");
+    f->addHeader("uri",uri);
+    f->addHeader("doverify","true");
+    f->addHeader("unpack","true");
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->isType(Frame::RESPONSE))
+        {
+            f->checkResponse(on_done);
+        }
+        else
+        {
+            on_msg(Message::fromFrame(f));
+        }
+    });
 }
-*/
+
+void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done)
+{
+    BW::subscribe(uri, [=](PMessage m)
+    {
+        foreach(auto po, m->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack))
+        {
+            QVariant v = MsgPack::unpack(po->contentArray());
+            on_msg(v.toMap());
+        }
+    }, on_done);
+}
+
+void BW::subscribeMsgPack(QString uri, QJSValue on_msg)
+{
+    subscribeMsgPack(uri, ERes<QVariantMap>(on_msg));
+}
+
+void BW::subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done)
+{
+    subscribeMsgPack(uri, ERes<QVariantMap>(on_msg), Res<QString>(on_done));
+}

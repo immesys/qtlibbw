@@ -4,7 +4,9 @@
 #include <QSharedPointer>
 #include "agentconnection.h"
 
-QT_FORWARD_DECLARE_CLASS(Message);
+QT_FORWARD_DECLARE_CLASS(Message)
+QT_FORWARD_DECLARE_CLASS(PayloadObject)
+
 
 typedef QSharedPointer<Message> PMessage;
 class Message
@@ -14,9 +16,29 @@ public:
     static PMessage fromFrame(PFrame f);
     QList<PayloadObject*> POs();
     QList<PayloadObject*> FilterPOs(int ponum);
+    QList<PayloadObject*> FilterPOs(int ponum, int mask);
 
 private:
     PFrame frame;
 };
+
+class PayloadObject
+{
+public:
+    ~PayloadObject();
+    static PayloadObject* load(int ponum, char* dat, int length);
+    int ponum();
+    const char* content ();
+    QByteArray contentArray();
+    int length();
+protected:
+    PayloadObject(int ponum, char *data, int length) : m_ponum(ponum), m_data(data), m_length(length) {}
+    int m_ponum;
+    char *m_data;
+    int m_length;
+};
+
+PayloadObject* createBasePayloadObject(int ponum, QByteArray &contents);
+PayloadObject* createBasePayloadObject(int ponum, const char* dat, int length);
 
 #endif // MESSAGE_H
