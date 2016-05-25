@@ -144,6 +144,7 @@ public:
         }
         wrap = [=](Tz... args) mutable
         {
+            qDebug() << "callback invoked";
             QJSValueList l;
             convert(l, args...);
             callback.call(l);
@@ -151,13 +152,14 @@ public:
     }
     Res(QQmlEngine* e, QJSValue callback)
     {
-        qDebug() << "calling res with QJS";
+        qDebug() << "calling res with EQJS";
         if (!callback.isCallable())
         {
             qFatal("Trying to construct Res with non function JS Value");
         }
         wrap = [=](Tz... args) mutable
         {
+            qDebug() << "callback2 invoked";
             QJSValueList l;
             convertE(e, l, args...);
             callback.call(l);

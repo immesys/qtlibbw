@@ -185,7 +185,14 @@ void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done)
     {
         if (f->isType(Frame::RESPONSE))
         {
-            f->checkResponse(on_done);
+            if(f->checkResponse(on_done))
+            {
+                qDebug() << "invoking nil reply";
+                on_done("");
+            }
+            else {
+                qDebug() << "not invoking nil reply";
+            }
         }
         else
         {
@@ -196,6 +203,7 @@ void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done)
 
 void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done)
 {
+    qDebug() <<"fun3";
     BW::subscribe(uri, [=](PMessage m)
     {
         foreach(auto po, m->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack))
@@ -208,10 +216,12 @@ void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_
 
 void BW::subscribeMsgPack(QString uri, QJSValue on_msg)
 {
+    qDebug() <<"fun2";
     subscribeMsgPack(uri, ERes<QVariantMap>(on_msg));
 }
 
 void BW::subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done)
 {
-    subscribeMsgPack(uri, ERes<QVariantMap>(on_msg), Res<QString>(on_done));
+    qDebug() <<"fun1";
+    subscribeMsgPack(uri, ERes<QVariantMap>(on_msg), ERes<QString>(on_done));
 }
