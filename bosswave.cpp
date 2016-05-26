@@ -100,6 +100,8 @@ void BW::setEntity(QByteArray &contents, Res<QString> on_done)
         if(f->checkResponse(on_done))
         {
             on_done("");
+            m_vk = f->getHeaderS("vk");
+            qDebug() << "VK is" << m_vk;
         }
     });
 }
@@ -224,4 +226,9 @@ void BW::subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done)
 {
     qDebug() <<"fun1";
     subscribeMsgPack(uri, ERes<QVariantMap>(on_msg), ERes<QString>(on_done));
+}
+
+QString BW::getVK()
+{
+    return m_vk;
 }

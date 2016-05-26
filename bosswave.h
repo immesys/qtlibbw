@@ -262,6 +262,15 @@ public:
      */
     Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done);
 
+    /**
+     * @brief Get the current entity's verifying key
+     * @return The base64 version of the VK
+     *
+     * @ingroup qml
+     * @since 1.1.7
+     */
+    Q_INVOKABLE QString getVK();
+
 signals:
     /**
      * @brief Fired when the BOSSWAVE agent connection changes (connect or disconnect)
@@ -275,6 +284,7 @@ private:
     QJSEngine *jsengine;
     AgentConnection *agent();
     AgentConnection *m_agent;
+    QString m_vk;
 
     template <typename ...Tz> Res<Tz...> ERes(QJSValue callback)
     {
