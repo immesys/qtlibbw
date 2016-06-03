@@ -127,6 +127,16 @@ namespace bwpo
   namespace dfmask { const constexpr char* HamiltonBase = "2.0.4.0/24"; }
 
   /**
+   * BW2ChatMessages (2.0.7.0/24): BW2ChatMessages 
+   * These are MsgPack dictionaries sent for the BW2Chat program
+   * (https://github.com/gtfierro/bw2chat)
+   */
+  namespace num    { const constexpr int   BW2ChatMessages = 33556224; }
+  namespace df     { const constexpr char* BW2ChatMessages = "2.0.7.0"; }
+  namespace mask   { const constexpr int   BW2ChatMessages = 24; }
+  namespace dfmask { const constexpr char* BW2ChatMessages = "2.0.7.0/24"; }
+
+  /**
    * HamiltonTelemetry (2.0.4.64/26): Hamilton Telemetry 
    * This object contains a "#" field for the serial number, as well as possibly
    * containing an "A" field with a list of X, Y, and Z accelerometer values. A
@@ -297,6 +307,17 @@ namespace bwpo
   namespace dfmask { const constexpr char* SpawnpointLog = "2.0.2.0/32"; }
 
   /**
+   * SpawnpointHeartbeat (2.0.2.1/32): SpawnPoint heartbeat 
+   * A heartbeat message from spawnpoint. It is a msgpack dictionary that contains
+   * the keys "Alias", "Time", "TotalMem", "TotalCpuShares", "AvailableMem", and
+   * "AvailableCpuShares".
+   */
+  namespace num    { const constexpr int   SpawnpointHeartbeat = 33554945; }
+  namespace df     { const constexpr char* SpawnpointHeartbeat = "2.0.2.1"; }
+  namespace mask   { const constexpr int   SpawnpointHeartbeat = 32; }
+  namespace dfmask { const constexpr char* SpawnpointHeartbeat = "2.0.2.1/32"; }
+
+  /**
    * SMetadata (2.0.3.1/32): Simple Metadata entry 
    * This contains a simple "val" string and "ts" int64 metadata entry. The key is
    * determined by the URI. Other information MAY be present in the msgpacked
@@ -310,8 +331,8 @@ namespace bwpo
   /**
    * HSBLightMessage (2.0.5.1/32): HSBLight Message 
    * This object may contain "hue", "saturation", "brightness" fields with a float
-   * from 0 to 1. It may also contain an "on" key with a boolean. Omitting fields
-   * leaves them at their previous state.
+   * from 0 to 1. It may also contain an "state" key with a boolean. Omitting
+   * fields leaves them at their previous state.
    */
   namespace num    { const constexpr int   HSBLightMessage = 33555713; }
   namespace df     { const constexpr char* HSBLightMessage = "2.0.5.1"; }
@@ -319,14 +340,57 @@ namespace bwpo
   namespace dfmask { const constexpr char* HSBLightMessage = "2.0.5.1/32"; }
 
   /**
-   * WaveletManifest (2.0.6.1/32): Wavelet manifest 
-   * This msgpack dictionary contains a wavelet manifest (see
-   * github.com/immesys/wavelet)
+   * InterfaceDescriptor (2.0.6.1/32): InterfaceDescriptor 
+   * This object is used to describe an interface. It contains "uri",
+   * "iface","svc","namespace" "prefix" and "metadata" keys.
    */
-  namespace num    { const constexpr int   WaveletManifest = 33555969; }
-  namespace df     { const constexpr char* WaveletManifest = "2.0.6.1"; }
-  namespace mask   { const constexpr int   WaveletManifest = 32; }
-  namespace dfmask { const constexpr char* WaveletManifest = "2.0.6.1/32"; }
+  namespace num    { const constexpr int   InterfaceDescriptor = 33555969; }
+  namespace df     { const constexpr char* InterfaceDescriptor = "2.0.6.1"; }
+  namespace mask   { const constexpr int   InterfaceDescriptor = 32; }
+  namespace dfmask { const constexpr char* InterfaceDescriptor = "2.0.6.1/32"; }
+
+  /**
+   * BW2Chat_CreateRoomMessage (2.0.7.1/32): BW2Chat_CreateRoomMessage 
+   * A dictionary with a single key "Name" indicating the room to be created. This
+   * will likely be deprecated.
+   */
+  namespace num    { const constexpr int   BW2Chat_CreateRoomMessage = 33556225; }
+  namespace df     { const constexpr char* BW2Chat_CreateRoomMessage = "2.0.7.1"; }
+  namespace mask   { const constexpr int   BW2Chat_CreateRoomMessage = 32; }
+  namespace dfmask { const constexpr char* BW2Chat_CreateRoomMessage = "2.0.7.1/32"; }
+
+  /**
+   * BW2Chat_ChatMessage (2.0.7.2/32): BW2Chat_ChatMessage 
+   * A textual message to be sent to all members of a chatroom. This is a
+   * dictionary with three keys: 'Room', the name of the room to publish to (this
+   * is actually implicit in the publishing), 'From', the alias you are using for
+   * the chatroom, and 'Message', the actual string to be displayed to all users
+   * in the room.
+   */
+  namespace num    { const constexpr int   BW2Chat_ChatMessage = 33556226; }
+  namespace df     { const constexpr char* BW2Chat_ChatMessage = "2.0.7.2"; }
+  namespace mask   { const constexpr int   BW2Chat_ChatMessage = 32; }
+  namespace dfmask { const constexpr char* BW2Chat_ChatMessage = "2.0.7.2/32"; }
+
+  /**
+   * BW2Chat_JoinRoom (2.0.7.3/32): BW2Chat_JoinRoom 
+   * Notify users in the chatroom that you have joined. Dictionary with a single
+   * key "Alias" that has a value of your nickname
+   */
+  namespace num    { const constexpr int   BW2Chat_JoinRoom = 33556227; }
+  namespace df     { const constexpr char* BW2Chat_JoinRoom = "2.0.7.3"; }
+  namespace mask   { const constexpr int   BW2Chat_JoinRoom = 32; }
+  namespace dfmask { const constexpr char* BW2Chat_JoinRoom = "2.0.7.3/32"; }
+
+  /**
+   * BW2Chat_LeaveRoom (2.0.7.4/32): BW2Chat_LeaveRoom 
+   * Notify users in the chatroom that you have left. Dictionary with a single key
+   * "Alias" that has a value of your nickname
+   */
+  namespace num    { const constexpr int   BW2Chat_LeaveRoom = 33556228; }
+  namespace df     { const constexpr char* BW2Chat_LeaveRoom = "2.0.7.4"; }
+  namespace mask   { const constexpr int   BW2Chat_LeaveRoom = 32; }
+  namespace dfmask { const constexpr char* BW2Chat_LeaveRoom = "2.0.7.4/32"; }
 
   /**
    * String (64.0.1.0/32): String 
@@ -369,15 +433,6 @@ namespace bwpo
   namespace df     { const constexpr char* SpawnpointConfig = "67.0.2.0"; }
   namespace mask   { const constexpr int   SpawnpointConfig = 32; }
   namespace dfmask { const constexpr char* SpawnpointConfig = "67.0.2.0/32"; }
-
-  /**
-   * SpawnpointHeartbeat (67.0.2.1/32): SpawnPoint heartbeat 
-   * A heartbeat message from spawnpoint
-   */
-  namespace num    { const constexpr int   SpawnpointHeartbeat = 1124073985; }
-  namespace df     { const constexpr char* SpawnpointHeartbeat = "67.0.2.1"; }
-  namespace mask   { const constexpr int   SpawnpointHeartbeat = 32; }
-  namespace dfmask { const constexpr char* SpawnpointHeartbeat = "67.0.2.1/32"; }
 
 } // end pid
 #endif

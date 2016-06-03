@@ -10,6 +10,9 @@
 #include "agentconnection.h"
 #include "message.h"
 
+QT_FORWARD_DECLARE_CLASS(BWView)
+
+
 /*! \mainpage BOSSWAVE Wavelet Viewer
  *
  * \section intro_sec Introduction
@@ -85,39 +88,6 @@ public:
      */
     static int fromDF(QString df);
 
-//    //void setAgent(QString &host, quint16 port);
-//    void trigLater(function<void(QString s)> cb)
-//    {
-//        qDebug() << "norm one";
-//        auto leak = new QTimer(this);
-//        leak->setSingleShot(true);
-//        connect(leak, &QTimer::timeout, this, [=]{
-//            cb(QString("hello world"));
-//        });
-//        leak->start(2000);
-//    }
-//    Q_INVOKABLE void trigLater(QJSValue v)
-//    {
-//        qDebug() << "jsv one";
-//        trigLater(mkcb<QString>(v));
-//        /*
-//        Handler<QString> f(v);
-//        trigLater(f);
-//        if(v.isCallable())
-//        {
-//            trigLater([=](QString s) mutable
-//            {
-//                QJSValueList l;
-//                l.append(QJSValue(s));
-//                v.call(l);
-//            });
-//        }*/
-//    }
-
-    // Set the agent to the given host and port. Any existing connection will
-    // be torn down. Any existing subscriptions / views will not be recreated
-    // and the entity must be set again. agentConnected() will be signalled
-    // when this process is complete
     /**
      * @brief Connect to a BOSSWAVE agent
      * @param host The IP address/hostname to connect to
@@ -262,6 +232,7 @@ public:
      */
     Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done);
 
+
     /**
      * @brief Get the current entity's verifying key
      * @return The base64 version of the VK
@@ -270,6 +241,28 @@ public:
      * @since 1.1.7
      */
     Q_INVOKABLE QString getVK();
+
+    /**
+     * @brief Create a new BOSSWAVE View
+     * @param query The view expression
+     * @param on_done A callback to be executed with an error message (or nil) and the View
+     *
+     * @see https://github.com/immesys/bw2/wiki/Views
+     * @ingroup qml
+     * @since 1.2
+     */
+    Q_INVOKABLE void createView(QVariantMap query, Res<QString, BWView*> on_done);
+
+    /**
+     * @brief Create a new BOSSWAVE View
+     * @param query The view expression
+     * @param on_done A callback to be executed with an error message (or nil) and the View
+     *
+     * @see https://github.com/immesys/bw2/wiki/Views
+     * @ingroup qml
+     * @since 1.2
+     */
+    Q_INVOKABLE void createView(QVariantMap query, QJSValue on_done);
 
 signals:
     /**
@@ -292,7 +285,34 @@ private:
     }
 
     static Res<QString> _nop_res_status;
+    friend BWView;
 };
+
+class BWView : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QVariantList interfaces READ interfaces NOTIFY interfacesChanged)
+    Q_PROPERTY(QStringList services READ services NOTIFY servicesChanged)
+
+public:
+    BWView(BW* parent) : QObject(parent), bw(parent) {
+
+    }
+    const QStringList& services();
+    const QVariantList& interfaces();
+signals:
+    void interfacesChanged();
+    void servicesChanged();
+private:
+    BW* bw;
+    int m_vid;
+    QVariantList m_interfaces;
+    QStringList m_services;
+    void onChange();
+    friend BW;
+};
+//Q_DECLARE_METATYPE(BWView*)
+
 
 #endif // BOSSWAVE_H
 

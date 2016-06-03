@@ -232,3 +232,85 @@ QString BW::getVK()
 {
     return m_vk;
 }
+
+void BW::createView(QVariantMap query, Res<QString, BWView*> on_done)
+{
+    auto f = agent()->newFrame(Frame::MAKE_VIEW);
+    QByteArray mpo = MsgPack::pack(query);
+    f->addHeaderB("msgpack",mpo);
+    BWView* rv = new BWView(this);
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->isType(Frame::RESPONSE))
+        {
+            if(f->checkResponse(on_done, (BWView*)nullptr))
+            {
+                qDebug() << "invoking nil reply";
+                rv->m_vid = f->getHeaderI("id");
+                on_done("", rv);
+                rv->onChange();
+            }
+        }
+        else
+        {
+            rv->onChange();
+        }
+    });
+}
+
+void BW::createView(QVariantMap query, QJSValue on_done)
+{
+    createView(query, [=](QString s, BWView *v) mutable
+    {
+        QJSValueList jsl;
+        jsl.append(QJSValue(s));
+        jsl.append(engine->toScriptValue((QObject*)v));
+        on_done.call(jsl);
+    });
+}
+
+void BWView::onChange()
+{
+    auto f = bw->agent()->newFrame(Frame::LIST_VIEW);
+    f->addHeader("id",QString::number(m_vid));
+    bw->agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        //This view has changed (the interfaces in it have changed)
+        //tODO handle M
+        auto m = Message::fromFrame(f);
+        QSet<QString> svcs;
+        m_interfaces.clear();
+        foreach(auto po, m->FilterPOs(bwpo::num::InterfaceDescriptor)) {
+            QVariant v = MsgPack::unpack(po->contentArray());
+            QVariantMap vm = v.toMap();
+         //   qDebug() << "map thingy: " << vm;
+            //How long is the /ifacename/iface string?
+            int suffixlen = vm["prefix"].toString().length() + vm["iface"].toString().length() + 2;
+            QString sname = vm["suffix"].toString();
+            sname.chop(suffixlen);
+            svcs.insert(sname);
+            m_interfaces.append(vm);
+        }
+        QStringList svcL = svcs.toList();
+        svcL.sort();
+        if (!(svcL == m_services)) {
+            m_services = svcL;
+            emit servicesChanged();
+        }
+        emit interfacesChanged();
+        qDebug() << "interfaces: " << m_interfaces;
+       // qDebug() << "services:" << m_services;
+    });
+}
+
+const QStringList& BWView::services()
+{
+    return m_services;
+}
+
+const QVariantList& BWView::interfaces()
+{
+    return m_interfaces;
+}
+
+

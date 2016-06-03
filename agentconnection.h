@@ -58,7 +58,6 @@ public:
         m_length = utf8.length();
         memcpy(m_data,utf8.data(), m_length);
     }
-
     ~Header()
     {
         delete [] m_data;
@@ -120,6 +119,8 @@ private:
 template <typename ...Tz>
 using Res = std::function<void(Tz...)>;
 */
+
+
 
 template <typename ...Tz>
 class Res
@@ -205,6 +206,12 @@ public:
     constexpr static const char* UPDATE_SRV       = "usrv";
     constexpr static const char* LIST_DRO         = "ldro";
 
+    constexpr static const char* MAKE_VIEW        = "mkvw";
+    constexpr static const char* SUBSCRIBE_VIEW   = "vsub";
+    constexpr static const char* PUBLISH_VIEW     = "vpub";
+    constexpr static const char* LIST_VIEW        = "vlst";
+    constexpr static const char* UNSUBSCRIBE      = "usub";
+
     constexpr static const char* RESPONSE = "resp";
     constexpr static const char* RESULT   = "rslt";
 
@@ -267,6 +274,13 @@ public:
         Header* h = new Header(key, val);
         addHeader(h);
     }
+    void addHeaderB(QString key, QByteArray a)
+    {
+        char* dat = new char[a.size()];
+        memcpy(&dat[0],&a.data()[0], a.size());
+        addHeader(new Header(key,dat,a.size()));
+    }
+
     void addRoutingObject(RoutingObject * ro)
     {
         ros.append(ro);

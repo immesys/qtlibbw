@@ -6,6 +6,7 @@
 #include <functional>
 #include <QQmlEngine>
 
+
 using std::function;
 
 template <typename F, typename ...R> void convert(QJSValueList &l, F f, R... rest)
@@ -20,7 +21,7 @@ template <typename F> void convert(QJSValueList &l, F f)
 template <typename F, typename ...R> void convertE(QQmlEngine* e, QJSValueList &l, F f, R... rest)
 {
     l.append(e->toScriptValue(f));
-    convertE(l, rest...);
+    convertE(e, l, rest...);
 }
 template <typename F> void convertE(QQmlEngine* e, QJSValueList &l, F f)
 {
