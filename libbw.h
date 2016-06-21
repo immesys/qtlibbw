@@ -1,14 +1,9 @@
-#ifndef IMPORTBOSSWAVE_H
-#define IMPORTBOSSWAVE_H
-
+#ifndef LIBBW_H
+#define LIBBW_H
 
 #include "bosswave.h"
 #include "agentconnection.h"
 
-class ImportBosswave
-{
-public:
-    ImportBosswave();
-};
+void initLibBW();
 
-#endif // IMPORTBOSSWAVE_H
+#endif // LIBBW
