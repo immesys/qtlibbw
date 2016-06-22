@@ -99,9 +99,9 @@ void BW::setEntity(QByteArray &contents, Res<QString> on_done)
     {
         if(f->checkResponse(on_done))
         {
-            on_done("");
             m_vk = f->getHeaderS("vk");
             qDebug() << "VK is" << m_vk;
+            on_done("");
         }
     });
 }
