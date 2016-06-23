@@ -147,6 +147,17 @@ void BW::publishMsgPack(QString uri, QString PODF, QVariantMap val, QJSValue on_
     publishMsgPack(uri, PODF, val, Res<QString>(on_done));
 }
 
+void BW::publishText(QString uri, QString msg, Res<QString> on_done)
+{
+    PayloadObject* po = createBasePayloadObject("64.0.0.0", msg.data(), msg.length());
+    publish(uri, {po}, on_done);
+}
+void BW::publishText(QString uri, QString msg, QJSValue on_done)
+{
+    publishText(uri, msg, Res<QString>(on_done));
+}
+
+
 void BW::query(QString uri, Res<QString, QList<PMessage> > on_done)
 {
     auto f = agent()->newFrame(Frame::QUERY);
