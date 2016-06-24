@@ -149,7 +149,8 @@ void BW::publishMsgPack(QString uri, QString PODF, QVariantMap val, QJSValue on_
 
 void BW::publishText(QString uri, QString msg, Res<QString> on_done)
 {
-    PayloadObject* po = createBasePayloadObject("64.0.0.0", msg.data(), msg.length());
+    QByteArray encoded = msg.toUtf8();
+    PayloadObject* po = createBasePayloadObject(1073741824, encoded);
     publish(uri, {po}, on_done);
 }
 void BW::publishText(QString uri, QString msg, QJSValue on_done)
