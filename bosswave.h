@@ -178,7 +178,7 @@ public:
     Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, QJSValue on_done);
 
     /**
-     * @brief Publish a text string to the given URI
+     * @brief Publish plain text to the given URI
      *
      * @ingroup qml
      * @since 1.3
@@ -186,12 +186,28 @@ public:
     Q_INVOKABLE void publishText(QString uri, QString msg, Res<QString> on_done = _nop_res_status);
 
     /**
-     * @brief Publish a MsgPack object to the given URI, with a javascript callback
+     * @brief Publish plain text to the given URI, with a javascript callback
      *
      * @ingroup qml
      * @since 1.3
      */
     Q_INVOKABLE void publishText(QString uri, QString msg, QJSValue on_done);
+
+    /**
+      * @brief Publish text of the specified type to the given URI
+      *
+      * @ingroup qml
+      * @since 1.3
+      */
+    Q_INVOKABLE void publishText(QString uri, int PONum, QString msg, Res<QString> on_done = _nop_res_status);
+
+    /**
+      * @brief Publish text of the specified type to the given URI, with a javascript callback
+      *
+      * @ingroup qml
+      * @since 1.3
+      */
+    Q_INVOKABLE void publishText(QString uri, int PONum, QString msg, QJSValue on_done);
 
     /**
      * @brief Query the given URI pattern and return all messages that match
