@@ -198,7 +198,7 @@ void BW::query(QString uri, Res<QString, QList<PMessage> > on_done)
     });
 }
 
-void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done)
+void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done, Res<QString> on_handle)
 {
     auto f = agent()->newFrame(Frame::SUBSCRIBE);
     f->addHeader("autochain","true");
@@ -209,12 +209,16 @@ void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done)
     {
         if (f->isType(Frame::RESPONSE))
         {
+            QString handle = f->getHeaderS("handle");
+            on_handle(handle);
+
             if(f->checkResponse(on_done))
             {
                 qDebug() << "invoking nil reply";
                 on_done("");
             }
-            else {
+            else
+            {
                 qDebug() << "not invoking nil reply";
             }
         }
@@ -225,7 +229,7 @@ void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done)
     });
 }
 
-void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done)
+void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done, Res<QString> on_handle)
 {
     qDebug() <<"fun3";
     BW::subscribe(uri, [=](PMessage m)
@@ -235,7 +239,7 @@ void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_
             QVariant v = MsgPack::unpack(po->contentArray());
             on_msg(v.toMap());
         }
-    }, on_done);
+    }, on_done, on_handle);
 }
 
 void BW::subscribeMsgPack(QString uri, QJSValue on_msg)
@@ -248,6 +252,25 @@ void BW::subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done)
 {
     qDebug() <<"fun1";
     subscribeMsgPack(uri, ERes<QVariantMap>(on_msg), ERes<QString>(on_done));
+}
+
+void BW::unsubscribe(QString handle, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::UNSUBSCRIBE);
+    f->addHeader("handle", handle);
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            qDebug() << "invoking nil reply";
+            on_done("");
+        }
+    });
+}
+
+void BW::unsubscribe(QString handle, QJSValue on_done)
+{
+    unsubscribe(handle, ERes<QString>(on_done));
 }
 
 QString BW::getVK()

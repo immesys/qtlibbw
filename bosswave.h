@@ -223,25 +223,29 @@ public:
      * @brief Subscribe to the given URI
      * @param uri The URI to subscribe to
      * @param on_msg A callback for each received message
-     * @param on_done The callback to be executed with the error message. Empty implies success
+     * @param on_done The callback to be executed with the error message. Empty implies success.
+     * @param on_handle The callback to be executed with the subscribe handle.
      *
      * @ingroup cpp
      * @since 1.1
      */
-    void subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done = _nop_res_status);
+    void subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done = _nop_res_status,
+                   Res<QString> on_handle = _nop_res_status);
 
     /**
      * @brief Subscribe to a MsgPack resource
      * @param uri The resource to subscribe to
      * @param on_msg The callback to be called for each message
      * @param on_done The callback to be executed with the error message. Empty implies success.
+     * @param on_handle The callback to be executed with the subscribe handle.
      *
      * This will unpack msgpack PO's and pass them to the on_msg callback
      *
      * @ingroup qml
      * @since 1.1
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done = _nop_res_status,
+                                      Res<QString> on_handle = _nop_res_status);
 
     /**
      * @brief Subscribe to a MsgPack resource
@@ -263,6 +267,15 @@ public:
      * @since 1.1
      */
     Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done);
+
+    /**
+     * @brief Unsubscribe from a resource
+     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param on_done The callback to be executed with the error message. "" implies success.
+     */
+    void unsubscribe(QString handle, Res<QString> on_done = _nop_res_status);
+
+    Q_INVOKABLE void unsubscribe(QString handle, QJSValue on_done);
 
 
     /**
