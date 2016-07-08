@@ -7,6 +7,23 @@
 
 #include <msgpack.h>
 
+class NotImplementedException: public std::exception
+{
+public:
+    NotImplementedException(const char* msg)
+    {
+        this->msg = msg;
+    }
+
+    virtual const char* what() const throw()
+    {
+        return this->msg;
+    }
+
+private:
+    const char* msg;
+};
+
 Res<QString> BW::_nop_res_status;
 
 BW::BW(QObject *parent):
@@ -105,6 +122,145 @@ void BW::setEntity(QByteArray &contents, Res<QString> on_done)
         }
     });
 }
+
+void BW::createEntity(QDateTime expiry, qreal expiryDelta, QString contact,
+                      QString comment, QList<QString> revokers, bool omitCreationDate,
+                      Res<QString, QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::MAKE_ENTITY);
+    if (expiry.isValid())
+    {
+        /* The format is supposed to follow RFC 3339. The format I'm
+         * using here looks exactly the same, even though it is named
+         * "ISODate".
+         */
+        f->addHeader("expiry", expiry.toString(Qt::ISODate));
+    }
+    if (expiryDelta >= 0)
+    {
+        f->addHeader("expirydelta", QStringLiteral("%1ms").arg(expiryDelta));
+    }
+    f->addHeader("contact", contact);
+    f->addHeader("comment", comment);
+    for (auto i = revokers.begin(); i != revokers.end(); i++)
+    {
+        f->addHeader("revoker", *i);
+    }
+    if (omitCreationDate)
+    {
+        f->addHeader("omitcreationdate", "true");
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral(""), QStringLiteral("")))
+        {
+            PayloadObject* po = f->getPayloadObjects().value(0);
+            if (po == nullptr)
+            {
+                on_done("invalid reponse", "", "");
+                return;
+            }
+            QString vk = f->getHeaderS("vk");
+            on_done("", vk, po->contentArray());
+        }
+    });
+}
+
+void BW::createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime expiry,
+                   qreal expiryDelta, QString contact, QString comment,
+                   QList<QString> revokers, bool omitCreationDate, QString uri,
+                   QString accessPermissions, QVariantMap appPermissions,
+                   Res<QString, QString, QString> on_done)
+{
+    // appPermissions is for Permission DOTs, which are not yet supported
+    Q_UNUSED(appPermissions);
+
+    auto f = agent()->newFrame(Frame::MAKE_DOT);
+    if (expiry.isValid())
+    {
+        f->addHeader("expiry", expiry.toString(Qt::ISODate));
+    }
+    if (expiryDelta >= 0)
+    {
+        f->addHeader("expirydelta",QStringLiteral("%1ms").arg(expiryDelta));
+    }
+    f->addHeader("contact", contact);
+    f->addHeader("comment", comment);
+    for (auto i = revokers.begin(); i != revokers.end(); i++)
+    {
+        f->addHeader("revoker", *i);
+    }
+    if (omitCreationDate)
+    {
+        f->addHeader("omitcreationdate", "true");
+    }
+    f->addHeader("ttl", QString::number(ttl));
+    f->addHeader("to", to);
+    if (isPermission)
+    {
+        f->addHeader("ispermission", QStringLiteral("true"));
+        throw NotImplementedException("Permission DOTs are not yet supported");
+    }
+    else
+    {
+        f->addHeader("ispermission", QStringLiteral("false"));
+        f->addHeader("uri", uri);
+        f->addHeader("accesspermissions", accessPermissions);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral(""), QStringLiteral("")))
+        {
+            PayloadObject* po = f->getPayloadObjects().value(0);
+            if (po == nullptr)
+            {
+                on_done("invalid response", "", "");
+            }
+            QString hash = f->getHeaderS("hash");
+            on_done("", hash, po->contentArray());
+        }
+    });
+}
+
+void BW::buildChain(QString uri, QString permissions, QString to,
+                    Res<QString, SimpleChain*, bool> on_done)
+{
+    auto f = agent()->newFrame(Frame::BUILD_CHAIN);
+    f->addHeader("uri", uri);
+    f->addHeader("to", to);
+    f->addHeader("addpermissions", permissions);
+    agent()->transact(this, f, [=](PFrame f, bool final)
+    {
+        SimpleChain* sc = new SimpleChain;
+        sc->valid = false;
+        if (f->checkResponse(on_done, sc, true))
+        {
+            QVariantMap chain;
+            QString hash = f->getHeaderS("hash");
+            if (hash != QStringLiteral(""))
+            {
+                sc->valid = true;
+                sc->hash = hash;
+                sc->permissions = f->getHeaderS("permissions");
+                sc->to = f->getHeaderS("to");
+                sc->uri = f->getHeaderS("uri");
+                PayloadObject* po = f->getPayloadObjects().value(0);
+                if (po == nullptr)
+                {
+                    sc->content = QString("");
+                }
+                else
+                {
+                    sc->content = QString(po->contentArray());
+                }
+            }
+            on_done("", sc, final);
+        }
+    });
+}
+
 //TODO add parameters
 void BW::publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done)
 {

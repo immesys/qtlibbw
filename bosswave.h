@@ -1,6 +1,7 @@
 #ifndef BOSSWAVE_H
 #define BOSSWAVE_H
 
+#include <QDateTime>
 #include <QQuickItem>
 #include <QTimer>
 #include <QJSValueList>
@@ -10,6 +11,7 @@
 #include "agentconnection.h"
 #include "message.h"
 
+QT_FORWARD_DECLARE_CLASS(SimpleChain)
 QT_FORWARD_DECLARE_CLASS(BWView)
 
 
@@ -102,6 +104,52 @@ public:
      * @since 1.0
      */
     void connectAgent(QString host, quint16 port);
+
+    /**
+     * @brief createEntity Create a new entity
+     * @param expiry The time at which the entity expires. Ignored if invalid (year == 0)
+     * @param expiryDelta The number of milliseconds after the current time at which the entity expires
+     * @param contact Contact info
+     * @param comment Comment
+     * @param revokers List of revoker VKs
+     * @param omitCreationDate If true, the creation date is omitted
+     * @param on_done Callback that takes as arguments (1) the error message (empty string if none), (2) the VK of the new entity, and (3) binary representation
+     */
+    Q_INVOKABLE void createEntity(QDateTime expiry, qreal expiryDelta, QString contact,
+                                  QString comment, QList<QString> revokers, bool omitCreationDate,
+                                  Res<QString, QString, QString> on_done);
+
+    /**
+     * @brief createDOT Create a Declaration of Trust (DOT)
+     * @param isPermission True if this DOT is a permission DOT (which are not yet implemented)
+     * @param to The entity to which the DOT is created
+     * @param ttl The time-to-live (TTL) of this DOT
+     * @param expiry The time at which the entity expires. Ignored if invalid (year == 0)
+     * @param expiryDelta The number of milliseconds after the current time at which the entity expires
+     * @param contact Contact info
+     * @param comment Comment
+     * @param revokers List of revokers
+     * @param omitCreationDate If true, the creation date is omitted
+     * @param uri The URI to which permissions are granted
+     * @param accessPermissions String describing the permissions granted
+     * @param appPermissions Used for permission DOTs
+     * @param on_done Callback that takes are arguments (1) the error message (empty string if none), (2) the hash of the new dot, and (3) binary representation
+     */
+    Q_INVOKABLE void createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime expiry,
+                               qreal expiryDelta, QString contact, QString comment,
+                               QList<QString> revokers, bool omitCreationDate, QString uri,
+                               QString accessPermissions, QVariantMap appPermissions,
+                               Res<QString, QString, QString> on_done);
+
+    /**
+     * @brief buildChain Builds a DOT chain.
+     * @param uri The URI to which to build the chain
+     * @param permissions The permissions that the chains must provide
+     * @param to The entity to which the chain is built
+     * @param on_done Called for each chain that is built. Arguments are (1) error message (or empty string if none), (2) DOT chain object (or empty dict if none), and (3) boolean which is true if this is the final DOT chain
+     */
+    Q_INVOKABLE void buildChain(QString uri, QString permissions, QString to,
+                                Res<QString, SimpleChain*, bool> on_done);
 
     /**
      * @brief Set the entity
@@ -275,6 +323,11 @@ public:
      */
     void unsubscribe(QString handle, Res<QString> on_done = _nop_res_status);
 
+    /**
+     * @brief Unsubscribe from a resource
+     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param on_done The callback to be executed with the error message. "" implies success.
+     */
     Q_INVOKABLE void unsubscribe(QString handle, QJSValue on_done);
 
 
@@ -331,6 +384,25 @@ private:
 
     static Res<QString> _nop_res_status;
     friend BWView;
+};
+
+class SimpleChain : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString hash MEMBER hash)
+    Q_PROPERTY(QString permissions MEMBER permissions)
+    Q_PROPERTY(QString uri MEMBER uri)
+    Q_PROPERTY(QString to MEMBER to)
+    Q_PROPERTY(QString content MEMBER content)
+    Q_PROPERTY(bool valid MEMBER valid);
+
+public:
+    QString hash;
+    QString permissions;
+    QString uri;
+    QString to;
+    QString content;
+    bool valid;
 };
 
 class BWView : public QObject

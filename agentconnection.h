@@ -265,6 +265,12 @@ public:
     {
         pos.append(po);
     }
+
+    QList<PayloadObject*> getPayloadObjects()
+    {
+        return pos;
+    }
+
     void addHeader(Header *h)
     {
         headers.append(h);
