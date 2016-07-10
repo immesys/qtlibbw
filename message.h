@@ -26,15 +26,15 @@ class PayloadObject
 {
 public:
     ~PayloadObject();
-    static PayloadObject* load(int ponum, char* dat, int length);
+    static PayloadObject* load(int ponum, const char* dat, int length);
     int ponum();
-    const char* content ();
+    const char* content();
     QByteArray contentArray();
     int length();
 protected:
-    PayloadObject(int ponum, char *data, int length) : m_ponum(ponum), m_data(data), m_length(length) {}
+    PayloadObject(int ponum, const char *data, int length) : m_ponum(ponum), m_data(data), m_length(length) {}
     int m_ponum;
-    char *m_data;
+    const char *m_data;
     int m_length;
 };
 

@@ -14,6 +14,11 @@
 QT_FORWARD_DECLARE_CLASS(SimpleChain)
 QT_FORWARD_DECLARE_CLASS(BWView)
 
+const QString elaborateDefault("");
+const QString elaborateFull("full");
+const QString elaboratePartial("partial");
+const QString elaborateNone("none");
+
 
 /*! \mainpage BOSSWAVE Wavelet Viewer
  *
@@ -152,6 +157,16 @@ public:
                                 Res<QString, SimpleChain*, bool> on_done);
 
     /**
+     * @brief buildAnyChain Convenience function that calls buildChain and only gives the first result, if any.
+     * @param uri The URI to which to build the chain
+     * @param permissions The permissions that the chains must provide
+     * @param to The entity to which the chain is built
+     * @param on_done Same as BuildChain, but only has the first two arguments.
+     */
+    Q_INVOKABLE void buildAnyChain(QString uri, QString permissions, QString to,
+                                   Res<QString, SimpleChain*> on_done);
+
+    /**
      * @brief Set the entity
      * @param filename a BW entity file to use
      *
@@ -191,7 +206,9 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done = _nop_res_status);
+    void publish(QString uri, QString primaryAccessChain, bool autoChain, QList<PayloadObject*> poz,
+                 QDateTime expiry, qreal expiryDelta, QString elaboratePAC, bool doNotVerify,
+                 bool persist, Res<QString> on_done = _nop_res_status);
 
     /**
      * @brief Publish a MsgPack object to the given URI
@@ -199,7 +216,10 @@ public:
      * @ingroup qml
      * @since 1.0
      */
-    Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                    QString PODF, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                                    QString elaboratePAC, bool doNotVerify, bool persist,
+                                    Res<QString> on_done = _nop_res_status);
 
     /**
      * @brief Publish a MsgPack object to the given URI
@@ -207,7 +227,10 @@ public:
      * @ingroup qml
      * @since 1.0
      */
-    Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                    int ponum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                                    QString elaboratePAC, bool doNotVerify, bool persist,
+                                    Res<QString> on_done = _nop_res_status);
 
     /**
      * @brief Publish a MsgPack object to the given URI, with a javascript callback
@@ -215,7 +238,10 @@ public:
      * @ingroup qml
      * @since 1.0
      */
-    Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, QJSValue on_done);
+    Q_INVOKABLE void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                    QString PODF, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                                    QString elaboratePAC, bool doNotVerify, bool persist,
+                                    QJSValue on_done);
 
     /**
      * @brief Publish a MsgPack object to the given URI, with a javascript callback
@@ -223,7 +249,10 @@ public:
      * @ingroup qml
      * @since 1.0
      */
-    Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, QJSValue on_done);
+    Q_INVOKABLE void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                    int PONum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                                    QString elaboratePAC, bool doNotVerify, bool persist,
+                                    QJSValue on_done);
 
     /**
      * @brief Publish plain text to the given URI
@@ -247,7 +276,10 @@ public:
       * @ingroup qml
       * @since 1.3
       */
-    Q_INVOKABLE void publishText(QString uri, int PONum, QString msg, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void publishText(QString uri, QString primaryAccessChain, bool autoChain,
+                                 int ponum, QString msg, QDateTime expiry, qreal expiryDelta,
+                                 QString elaboratePAC, bool doNotVerify, bool persist,
+                                 Res<QString> on_done = _nop_res_status);
 
     /**
       * @brief Publish text of the specified type to the given URI, with a javascript callback
@@ -255,7 +287,10 @@ public:
       * @ingroup qml
       * @since 1.3
       */
-    Q_INVOKABLE void publishText(QString uri, int PONum, QString msg, QJSValue on_done);
+    Q_INVOKABLE void publishText(QString uri, QString primaryAccessChain, bool autoChain,
+                                 int poNum, QString msg, QDateTime expiry, qreal expiryDelta,
+                                 QString elaboratePAC, bool doNotVerify, bool persist,
+                                 QJSValue on_done);
 
     /**
      * @brief Query the given URI pattern and return all messages that match
@@ -330,6 +365,55 @@ public:
      */
     Q_INVOKABLE void unsubscribe(QString handle, QJSValue on_done);
 
+    /**
+     * @brief list Lists all immediate children of a URI that have persisted messages in their children
+     * @param uri The URI whose children to list
+     * @param primaryAccessChain The primary access chain
+     * @param autoChain
+     * @param expiry Expiry time for this message. Ignored if invalid (year == 0)
+     * @param expiryDelta Milliseconds after now when this message should expire
+     * @param elaboratePAC
+     * @param doNotVerify
+     * @param on_done
+     */
+    Q_INVOKABLE void list(QString uri, QString primaryAccessChain, bool autoChain,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, Res<QString, QString, bool> on_done);
+
+    /**
+     * @brief publishDOTWithAcc Publish a DOT, using an account to bankroll the operation
+     * @param blob The DOT to publish
+     * @param account The account number to use
+     * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the hash
+     */
+    Q_INVOKABLE void publishDOTWithAcc(QString blob, int account,
+                                       Res<QString, QString> on_done);
+
+    /**
+     * @brief publishDOT Like publishDOTWithAcc, except that you don't have to explicitly specify the account
+     * @param blob
+     * @param on_done
+     */
+    Q_INVOKABLE void publishDOT(QString blob, Res<QString, QString> on_done);
+
+
+    /**
+     * @brief publishEntityWithAcc Publish an entity, using an account to bankroll the operation
+     * @param blob The entity to publish
+     * @param account The account number to use
+     * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the VK
+     */
+    Q_INVOKABLE void publishEntityWithAcc(QString blob, int account,
+                                          Res<QString, QString> on_done);
+
+    /**
+     * @brief setMetadata Sets metadata published at the URI
+     * @param uri
+     * @param key
+     * @param val
+     * @param on_done Callback invoked with a single argument: an error message, or the empty string if there was no error
+     */
+    Q_INVOKABLE void setMetadata(QString uri, QString key, QString val, Res<QString> on_done);
 
     /**
      * @brief Get the current entity's verifying key
@@ -394,7 +478,7 @@ class SimpleChain : public QObject
     Q_PROPERTY(QString uri MEMBER uri)
     Q_PROPERTY(QString to MEMBER to)
     Q_PROPERTY(QString content MEMBER content)
-    Q_PROPERTY(bool valid MEMBER valid);
+    Q_PROPERTY(bool valid MEMBER valid)
 
 public:
     QString hash;

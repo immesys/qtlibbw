@@ -54,7 +54,7 @@ PayloadObject::~PayloadObject()
 
 
 // This will eventually construct subclasses too
-PayloadObject* PayloadObject::load(int ponum, char* dat, int size)
+PayloadObject* PayloadObject::load(int ponum, const char* dat, int size)
 {
     return new PayloadObject(ponum, dat, size);
 }
@@ -64,7 +64,7 @@ int PayloadObject::ponum()
 {
     return m_ponum;
 }
-const char* PayloadObject::content ()
+const char* PayloadObject::content()
 {
     return m_data;
 }

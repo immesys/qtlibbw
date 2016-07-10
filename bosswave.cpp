@@ -261,17 +261,66 @@ void BW::buildChain(QString uri, QString permissions, QString to,
     });
 }
 
-//TODO add parameters
-void BW::publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done)
+void BW::buildAnyChain(QString uri, QString permissions, QString to,
+                       Res<QString, SimpleChain*> on_done)
 {
-    auto f = agent()->newFrame(Frame::PUBLISH);
+    bool* calledCB = new bool;
+    *calledCB = false;
+
+    this->buildChain(uri, permissions, to, [=](QString error, SimpleChain* chain, bool final)
+    {
+        if (!*calledCB)
+        {
+            on_done(error, chain);
+            *calledCB = true;
+        }
+
+        if (final)
+        {
+            delete calledCB;
+        }
+    });
+}
+
+//TODO add parameters
+void BW::publish(QString uri, QString primaryAccessChain, bool autoChain, QList<PayloadObject*> poz,
+                 QDateTime expiry, qreal expiryDelta, QString elaboratePAC, bool doNotVerify,
+                 bool persist, Res<QString> on_done)
+{
+    const char* cmd = persist ? Frame::PERSIST : Frame::PUBLISH;
+    auto f = agent()->newFrame(cmd);
+    if (autoChain)
+    {
+        f->addHeader("autochain", "true");
+    }
+    if (expiry.isValid())
+    {
+        f->addHeader("expiry", expiry.toString(Qt::ISODate));
+    }
+    if (expiryDelta >= 0)
+    {
+        f->addHeader("expirydelta", QStringLiteral("%1ms").arg(expiryDelta));
+    }
+    f->addHeader("uri", uri);
+    if (primaryAccessChain.length() != 0)
+    {
+        f->addHeader("primary_access_chain", primaryAccessChain);
+    }
+
     foreach(auto po, poz)
     {
         f->addPayloadObject(po);
     }
-    f->addHeader("autochain","true");
-    f->addHeader("uri",uri);
-    f->addHeader("doverify","true");
+
+    if (elaboratePAC.length() == 0)
+    {
+        elaboratePAC = elaboratePartial;
+    }
+
+    f->addHeader("elaborate_pac", elaboratePAC);
+    f->addHeader("doverify", doNotVerify ? "false" : "true");
+    f->addHeader("persist", persist ? "true" : "false");
+
     agent()->transact(this, f, [=](PFrame f, bool)
     {
         if(f->checkResponse(on_done))
@@ -281,47 +330,65 @@ void BW::publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done)
     });
 }
 
-void BW::publishMsgPack(QString uri, QString PODF, QVariantMap val, Res<QString> on_done)
+void BW::publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                        QString PODF, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                        QString elaboratePAC, bool doNotVerify, bool persist,
+                        Res<QString> on_done)
 {
-    publishMsgPack(uri, BW::fromDF(PODF), val, on_done);
+    publishMsgPack(uri, primaryAccessChain, autoChain, BW::fromDF(PODF), val, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, on_done);
 }
-void BW::publishMsgPack(QString uri, int ponum, QVariantMap val, Res<QString> on_done)
+
+void BW::publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                        int ponum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                        QString elaboratePAC, bool doNotVerify, bool persist,
+                        Res<QString> on_done)
 {
-    //qDebug() << "we got called, da" << (on_done == _nop_res_status);
     QByteArray contents = MsgPack::pack(val);
-    PayloadObject* po = createBasePayloadObject(ponum,contents.data(),contents.length());
-    publish(uri,{po}, on_done);
-//    QByteArray contents = MsgPack::pack(val);
-  //  qDebug() << "it worked2: " << contents;
+    PayloadObject* po = createBasePayloadObject(ponum, contents.data(), contents.length());
+    publish(uri, primaryAccessChain, autoChain, {po}, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, on_done);
 }
-void BW::publishMsgPack(QString uri, int PONum, QVariantMap val, QJSValue on_done)
+
+void BW::publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                        int PONum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                        QString elaboratePAC, bool doNotVerify, bool persist,
+                        QJSValue on_done)
 {
-    publishMsgPack(uri, PONum, val, Res<QString>(on_done));
+    publishMsgPack(uri, primaryAccessChain, autoChain, PONum, val, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, Res<QString>(on_done));
 }
-void BW::publishMsgPack(QString uri, QString PODF, QVariantMap val, QJSValue on_done)
+
+void BW::publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                        QString PODF, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                        QString elaboratePAC, bool doNotVerify, bool persist,
+                        QJSValue on_done)
 {
-    publishMsgPack(uri, PODF, val, Res<QString>(on_done));
+    publishMsgPack(uri, primaryAccessChain, autoChain, BW::fromDF(PODF), val, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, Res<QString>(on_done));
 }
 
 void BW::publishText(QString uri, QString msg, Res<QString> on_done)
 {
-    publishText(uri, bwpo::num::Text, msg, on_done);
+    publishText(uri, "", true, bwpo::num::Text, msg, QDateTime(), -1, "", false, false, on_done);
 }
 void BW::publishText(QString uri, QString msg, QJSValue on_done)
 {
-    publishText(uri, bwpo::num::Text, msg, Res<QString>(on_done));
+    publishText(uri, msg, Res<QString>(on_done));
 }
 
-void BW::publishText(QString uri, int PONum, QString msg, Res<QString> on_done)
+void BW::publishText(QString uri, QString primaryAccessChain, bool autoChain,
+                     int PONum, QString msg, QDateTime expiry, qreal expiryDelta,
+                     QString elaboratePAC, bool doNotVerify, bool persist,
+                     Res<QString> on_done)
 {
     QByteArray encoded = msg.toUtf8();
     PayloadObject* po = createBasePayloadObject(PONum, encoded);
-    publish(uri, {po}, on_done);
+    publish(uri, primaryAccessChain, autoChain, {po}, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, on_done);
 }
 
-void BW::publishText(QString uri, int PONum, QString msg, QJSValue on_done)
+void BW::publishText(QString uri, QString primaryAccessChain, bool autoChain,
+                     int poNum, QString msg, QDateTime expiry, qreal expiryDelta,
+                     QString elaboratePAC, bool doNotVerify, bool persist,
+                     QJSValue on_done)
 {
-    publishText(uri, PONum, msg, Res<QString>(on_done));
+    publishText(uri, primaryAccessChain, autoChain, poNum, msg, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, Res<QString>(on_done));
 }
 
 
@@ -427,6 +494,112 @@ void BW::unsubscribe(QString handle, Res<QString> on_done)
 void BW::unsubscribe(QString handle, QJSValue on_done)
 {
     unsubscribe(handle, ERes<QString>(on_done));
+}
+
+void BW::list(QString uri, QString primaryAccessChain, bool autoChain,
+              QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+              bool doNotVerify, Res<QString, QString, bool> on_done)
+{
+    auto f = agent()->newFrame(Frame::MAKE_ENTITY);
+    if (autoChain)
+    {
+        f->addHeader("autochain", "true");
+    }
+    if (expiry.isValid())
+    {
+        /* The format is supposed to follow RFC 3339. The format I'm
+         * using here looks exactly the same, even though it is named
+         * "ISODate".
+         */
+        f->addHeader("expiry", expiry.toString(Qt::ISODate));
+    }
+    if (expiryDelta >= 0)
+    {
+        f->addHeader("expirydelta", QStringLiteral("%1ms").arg(expiryDelta));
+    }
+    f->addHeader("uri", uri);
+    if (primaryAccessChain.length() != 0)
+    {
+        f->addHeader("primary_access_chain", primaryAccessChain);
+    }
+    if (elaboratePAC == QStringLiteral(""))
+    {
+        elaboratePAC = elaboratePartial;
+    }
+    f->addHeader("elaborate_pac", elaboratePAC);
+    f->addHeader("doverify", doNotVerify ? QStringLiteral("false") : QStringLiteral("true"));
+
+    agent()->transact(this, f, [=](PFrame f, bool final)
+    {
+        if (f->checkResponse(on_done, QStringLiteral(""), true))
+        {
+            bool ok;
+            QString child = f->getHeaderS("child", &ok);
+            if (ok || final)
+            {
+                on_done("", child, final);
+            }
+        }
+    });
+}
+
+void BW::publishDOTWithAcc(QString blob, int account,
+                           Res<QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::PUT_DOT);
+    std::string blobstr = blob.toStdString();
+    PayloadObject* po = PayloadObject::load(bwpo::num::ROAccessDOT, blobstr.data(), blobstr.size());
+    f->addPayloadObject(po);
+    f->addHeader("account", QString::number(account));
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral("")))
+        {
+            QString hash = f->getHeaderS("hash");
+            on_done("", hash);
+        }
+    });
+}
+
+void BW::publishDOT(QString blob, Res<QString, QString> on_done)
+{
+    this->publishDOTWithAcc(blob, 0, on_done);
+}
+
+void BW::publishEntityWithAcc(QString blob, int account,
+                              Res<QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::PUT_ENTITY);
+    std::string blobstr = blob.toStdString();
+    PayloadObject* po = PayloadObject::load(bwpo::num::ROEntity, blobstr.data(), blobstr.size());
+    f->addPayloadObject(po);
+    f->addHeader("account", QString::number(account));
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral("")))
+        {
+            QString hash = f->getHeaderS("vk");
+            on_done("", hash);
+        }
+    });
+}
+
+void BW::setMetadata(QString uri, QString key, QString val, Res<QString> on_done)
+{
+    QVariantMap metadata;
+    metadata["val"] = val;
+    metadata["ts"] = QDateTime::currentMSecsSinceEpoch() * Q_INT64_C(1000000);
+
+    if (uri.endsWith(QStringLiteral("/")))
+    {
+        uri.chop(1);
+    }
+    uri += "/!meta/";
+    uri += key;
+
+    this->publishMsgPack(uri, "", true, bwpo::num::SMetadata, metadata, QDateTime(), -1, "", false, true, on_done);
 }
 
 QString BW::getVK()
