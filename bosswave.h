@@ -232,12 +232,13 @@ public:
                                     QString elaboratePAC, bool doNotVerify, bool persist,
                                     Res<QString> on_done = _nop_res_status);
 
+
     /**
      * @brief Publish a MsgPack object to the given URI, with a javascript callback
      *
      * @ingroup qml
      * @since 1.0
-     */
+    */
     Q_INVOKABLE void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
                                     QString PODF, QVariantMap val, QDateTime expiry, qreal expiryDelta,
                                     QString elaboratePAC, bool doNotVerify, bool persist,
@@ -300,7 +301,10 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void query(QString uri, Res<QString, QList<PMessage>> on_done);
+    void query(QString uri, QString primaryAccessChain, bool autoChain,
+               QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+               bool doNotVerify, bool leavePacked,
+               Res<QString, QList<PMessage>> on_done);
 
     /**
      * @brief Subscribe to the given URI
@@ -312,8 +316,10 @@ public:
      * @ingroup cpp
      * @since 1.1
      */
-    void subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done = _nop_res_status,
-                   Res<QString> on_handle = _nop_res_status);
+    void subscribe(QString uri, QString primaryAccessChain, bool autoChain,
+                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                   bool doNotVerify, bool leavePacked, Res<PMessage> on_msg,
+                   Res<QString> on_done = _nop_res_status, Res<QString> on_handle = _nop_res_status);
 
     /**
      * @brief Subscribe to a MsgPack resource
@@ -327,7 +333,9 @@ public:
      * @ingroup qml
      * @since 1.1
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done = _nop_res_status,
+    Q_INVOKABLE void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                      QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                                      bool doNotVerify, bool leavePacked, Res<QVariantMap> on_msg, Res<QString> on_done = _nop_res_status,
                                       Res<QString> on_handle = _nop_res_status);
 
     /**
@@ -338,7 +346,9 @@ public:
      * @ingroup qml
      * @since 1.1
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg);
+    Q_INVOKABLE void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                      QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                                      bool doNotVerify, bool leavePacked, QJSValue on_msg);
 
     /**
      * @brief Subscribe to a MsgPack resource
@@ -349,7 +359,9 @@ public:
      * @ingroup qml
      * @since 1.1
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done);
+    Q_INVOKABLE void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                                      QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                                      bool doNotVerify, bool leavePacked, QJSValue on_msg, QJSValue on_done);
 
     /**
      * @brief Unsubscribe from a resource

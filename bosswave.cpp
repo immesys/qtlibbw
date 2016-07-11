@@ -282,7 +282,6 @@ void BW::buildAnyChain(QString uri, QString permissions, QString to,
     });
 }
 
-//TODO add parameters
 void BW::publish(QString uri, QString primaryAccessChain, bool autoChain, QList<PayloadObject*> poz,
                  QDateTime expiry, qreal expiryDelta, QString elaboratePAC, bool doNotVerify,
                  bool persist, Res<QString> on_done)
@@ -392,14 +391,41 @@ void BW::publishText(QString uri, QString primaryAccessChain, bool autoChain,
 }
 
 
-void BW::query(QString uri, Res<QString, QList<PMessage> > on_done)
+void BW::query(QString uri, QString primaryAccessChain, bool autoChain,
+               QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+               bool doNotVerify, bool leavePacked,
+               Res<QString, QList<PMessage>> on_done)
 {
     auto f = agent()->newFrame(Frame::QUERY);
+    if (autoChain)
+    {
+        f->addHeader("autochain", "true");
+    }
+    if (expiry.isValid())
+    {
+        f->addHeader("expiry", expiry.toString(Qt::ISODate));
+    }
+    if (expiryDelta >= 0)
+    {
+        f->addHeader("expirydelta", QString::number(expiryDelta));
+    }
+    f->addHeader("uri",uri);
+    if (primaryAccessChain.length() != 0)
+    {
+        f->addHeader("primary_access_chain", primaryAccessChain);
+    }
+    if (elaboratePAC.length() == 0)
+    {
+        elaboratePAC = elaboratePartial;
+    }
+    f->addHeader("elaborate_pac", elaboratePAC);
+    if (!leavePacked)
+    {
+        f->addHeader("unpack", "true");
+    }
+    f->addHeader("doverify", doNotVerify ? "false": "true");
+
     auto lst = new QList<PMessage>();
-    f->addHeader("autochain","true");
-    f->addHeader("uri", uri);
-    f->addHeader("doverify","true");
-    f->addHeader("unpack", "true");
     agent()->transact(this, f, [=](PFrame f, bool final)
     {
         if (f->isType(Frame::RESPONSE))
@@ -421,13 +447,39 @@ void BW::query(QString uri, Res<QString, QList<PMessage> > on_done)
     });
 }
 
-void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done, Res<QString> on_handle)
+void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain,
+                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                   bool doNotVerify, bool leavePacked, Res<PMessage> on_msg,
+                   Res<QString> on_done, Res<QString> on_handle)
 {
     auto f = agent()->newFrame(Frame::SUBSCRIBE);
-    f->addHeader("autochain","true");
+    if (autoChain)
+    {
+        f->addHeader("autochain", "true");
+    }
+    if (expiry.isValid())
+    {
+        f->addHeader("expiry", expiry.toString(Qt::ISODate));
+    }
+    if (expiryDelta >= 0)
+    {
+        f->addHeader("expirydelta", QString::number(expiryDelta));
+    }
     f->addHeader("uri",uri);
-    f->addHeader("doverify","true");
-    f->addHeader("unpack","true");
+    if (primaryAccessChain.length() != 0)
+    {
+        f->addHeader("primary_access_chain", primaryAccessChain);
+    }
+    if (elaboratePAC.length() == 0)
+    {
+        elaboratePAC = elaboratePartial;
+    }
+    f->addHeader("elaborate_pac", elaboratePAC);
+    if (!leavePacked)
+    {
+        f->addHeader("unpack", "true");
+    }
+    f->addHeader("doverify", doNotVerify ? "false": "true");
     agent()->transact(this, f, [=](PFrame f, bool)
     {
         if (f->isType(Frame::RESPONSE))
@@ -452,10 +504,13 @@ void BW::subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done, Res<
     });
 }
 
-void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done, Res<QString> on_handle)
+void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, bool leavePacked, Res<QVariantMap> on_msg, Res<QString> on_done, Res<QString> on_handle)
 {
-    qDebug() <<"fun3";
-    BW::subscribe(uri, [=](PMessage m)
+    BW::subscribe(uri, primaryAccessChain, autoChain, expiry,
+                  expiryDelta, elaboratePAC, doNotVerify, leavePacked,
+                  [=](PMessage m)
     {
         foreach(auto po, m->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack))
         {
@@ -465,16 +520,22 @@ void BW::subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_
     }, on_done, on_handle);
 }
 
-void BW::subscribeMsgPack(QString uri, QJSValue on_msg)
+void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, bool leavePacked, QJSValue on_msg)
 {
-    qDebug() <<"fun2";
-    subscribeMsgPack(uri, ERes<QVariantMap>(on_msg));
+    subscribeMsgPack(uri, primaryAccessChain, autoChain, expiry,
+                     expiryDelta, elaboratePAC, doNotVerify, leavePacked,
+                     ERes<QVariantMap>(on_msg));
 }
 
-void BW::subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done)
+void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, bool leavePacked, QJSValue on_msg, QJSValue on_done)
 {
-    qDebug() <<"fun1";
-    subscribeMsgPack(uri, ERes<QVariantMap>(on_msg), ERes<QString>(on_done));
+    subscribeMsgPack(uri, primaryAccessChain, autoChain, expiry,
+                     expiryDelta, elaboratePAC, doNotVerify, leavePacked,
+                     ERes<QVariantMap>(on_msg), ERes<QString>(on_done));
 }
 
 void BW::unsubscribe(QString handle, Res<QString> on_done)
