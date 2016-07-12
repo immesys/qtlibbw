@@ -158,6 +158,9 @@ public:
                                QString accessPermissions, QVariantMap appPermissions,
                                Res<QString, QString, QByteArray> on_done);
 
+    void createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate,
+                        Res<QString, QString, RoutingObject*> on_done);
+
     /**
      * @brief publish a bosswave message
      * @param uri the URI to publish to
@@ -406,7 +409,7 @@ public:
 
     void publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done);
 
-    void getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QStringList> on_done);
+    void getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QList<QString>> on_done);
 
     void acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done);
 

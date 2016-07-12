@@ -212,6 +212,35 @@ void BW::createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime ex
     });
 }
 
+void BW::createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate,
+                        Res<QString, QString, RoutingObject*> on_done)
+{
+    auto f = agent()->newFrame(Frame::MAKE_CHAIN);
+    f->addHeader("ispermission", isPermission ? "true" : "false");
+    f->addHeader("unelaborate", unElaborate ? "true" : "false");
+    for (auto i = dots.begin(); i != dots.end(); i++)
+    {
+        f->addHeader("dot", *i);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral(""), (RoutingObject*) nullptr))
+        {
+            QList<RoutingObject*> ros = f->getRoutingObjects();
+            if (ros.length() != 1)
+            {
+                on_done("bad response", "", nullptr);
+                return;
+            }
+            QString hash = f->getHeaderS("hash");
+            RoutingObject* ro = ros[0];
+
+            on_done("", hash, ro);
+        }
+    });
+}
+
 void BW::publish(QString uri, QString primaryAccessChain, bool autoChain,
                  QList<RoutingObject*> roz, QList<PayloadObject*> poz,
                  QDateTime expiry, qreal expiryDelta, QString elaboratePAC, bool doNotVerify,
@@ -1159,14 +1188,14 @@ void BW::publishRevocation(int account, QByteArray blob, Res<QString, QString> o
     });
 }
 
-void BW::getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QStringList> on_done)
+void BW::getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QList<QString>> on_done)
 {
     auto f = agent()->newFrame(Frame::LIST_DRO);
     f->addHeader("nsvk", nsvk);
 
     agent()->transact(this, f, [=](PFrame f, bool)
     {
-        QStringList rv;
+        QList<QString> rv;
         if (f->checkResponse(on_done, QStringLiteral(""), QStringLiteral(""), rv))
         {
             auto pos = f->getPayloadObjects();
