@@ -7,12 +7,39 @@
 
 #include <msgpack.h>
 
+#include <cstdio>
+
 class NotImplementedException: public std::exception
 {
 public:
     NotImplementedException(const char* msg)
     {
         this->msg = msg;
+    }
+
+    virtual const char* what() const throw()
+    {
+        return this->msg;
+    }
+
+private:
+    const char* msg;
+};
+
+class BadRouterMessageException: public std::exception
+{
+public:
+    BadRouterMessageException(const char* msg, const char* detail)
+    {
+        size_t totallen = (size_t) strlen(msg) + (size_t) strlen(detail) + Q_UINT64_C(3);
+        char* scratch = new char[totallen];
+        snprintf(scratch, totallen, "%s: %s", msg, detail);
+        this->msg = scratch;
+    }
+
+    ~BadRouterMessageException()
+    {
+        delete[] this->msg;
     }
 
     virtual const char* what() const throw()
@@ -843,6 +870,51 @@ void BW::resolveEmbeddedAlias(QString al, Res<QString, QString> on_done)
         {
             QString v = f->getHeaderS("value");
             on_done("", v);
+        }
+    });
+}
+
+void BW::resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done)
+{
+    auto f = agent()->newFrame(Frame::RESOLVE_REGISTRY);
+    f->addHeader("key", key);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, (RoutingObject*) nullptr, RegistryValidity::StateError))
+        {
+            QList<RoutingObject*> ros = f->getRoutingObjects();
+            if (ros.length() == 0)
+            {
+                on_done("", nullptr, RegistryValidity::StateError);
+                return;
+            }
+            QString valid = f->getHeaderS("validity");
+            RegistryValidity validity;
+
+            if (valid == "valid")
+            {
+                validity = RegistryValidity::StateValid;
+            }
+            else if (valid == "expired")
+            {
+                validity = RegistryValidity::StateExpired;
+            }
+            else if (valid == "revoked")
+            {
+                validity = RegistryValidity::StateRevoked;
+            }
+            else if (valid == "unknown")
+            {
+                validity = RegistryValidity::StateUnknown;
+            }
+            else
+            {
+                std::string rawvalid = valid.toStdString();
+                throw BadRouterMessageException("Invalid \"validity\" value", rawvalid.data());
+            }
+
+            on_done("", ros.first(), validity);
         }
     });
 }

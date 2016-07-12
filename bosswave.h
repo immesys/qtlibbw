@@ -73,6 +73,16 @@ public:
     BW(QObject *parent = 0);
     ~BW();
 
+    enum RegistryValidity
+    {
+        StateUnknown = 0,
+        StateValid = 1,
+        StateExpired = 2,
+        StateRevoked = 3,
+        StateError = 4
+    };
+    Q_ENUM(RegistryValidity)
+
     // This is used by the QML engine to instantiate the bosswave singleton
     static QObject *qmlSingleton(QQmlEngine *engine, QJSEngine *scriptEngine);
 
@@ -445,6 +455,8 @@ public:
     void resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done);
 
     void resolveEmbeddedAlias(QString al, Res<QString, QString> on_done);
+
+    void resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done);
 
     /**
      * @brief Get the current entity's verifying key

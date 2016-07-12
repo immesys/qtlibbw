@@ -274,6 +274,11 @@ public:
         return pos;
     }
 
+    QList<RoutingObject*> getRoutingObjects()
+    {
+        return ros;
+    }
+
     void addHeader(Header *h)
     {
         headers.append(h);
@@ -290,7 +295,7 @@ public:
         addHeader(new Header(key,dat,a.size()));
     }
 
-    void addRoutingObject(RoutingObject * ro)
+    void addRoutingObject(RoutingObject* ro)
     {
         ros.append(ro);
     }
