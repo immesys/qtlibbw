@@ -11,6 +11,7 @@
 #include "agentconnection.h"
 #include "message.h"
 
+QT_FORWARD_DECLARE_CLASS(BalanceInfo)
 QT_FORWARD_DECLARE_CLASS(SimpleChain)
 QT_FORWARD_DECLARE_CLASS(BWView)
 
@@ -458,6 +459,15 @@ public:
 
     void resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done);
 
+    void entityBalances(Res<QString, QVector<struct balanceinfo>> on_done);
+
+    void addressBalance(QString addr, Res<QString, struct balanceinfo> on_done);
+
+    void getBCInteractionParams(Res<QString, struct currbcip> on_done);
+
+    void setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t maxAge,
+                                Res<QString, struct currbcip> on_done);
+
     /**
      * @brief Get the current entity's verifying key
      * @return The base64 version of the VK
@@ -511,6 +521,42 @@ private:
 
     static Res<QString> _nop_res_status;
     friend BWView;
+};
+
+class BalanceInfo : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString addr MEMBER addr)
+    Q_PROPERTY(QString human MEMBER human)
+    Q_PROPERTY(QString decimal MEMBER decimal)
+    Q_PROPERTY(qreal value MEMBER value)
+
+public:
+
+    QString addr;
+    QString human;
+    QString decimal;
+    qreal value;
+};
+
+struct currbcip
+{
+    int64_t confirmations;
+    int64_t timeout;
+    int64_t maxAge;
+    int64_t currentAge;
+    uint64_t currentBlock;
+    int64_t peers;
+    int64_t highestBlock;
+    int64_t difficulty;
+};
+
+struct balanceinfo
+{
+    QString addr;
+    QString human;
+    QString decimal;
+    qreal value;
 };
 
 class SimpleChain : public QObject

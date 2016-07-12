@@ -9,7 +9,7 @@
 
 #include <cstdio>
 
-class NotImplementedException: public std::exception
+class NotImplementedException : public std::exception
 {
 public:
     NotImplementedException(const char* msg)
@@ -26,7 +26,7 @@ private:
     const char* msg;
 };
 
-class BadRouterMessageException: public std::exception
+class BadRouterMessageException : public std::exception
 {
 public:
     BadRouterMessageException(const char* msg, const char* detail)
@@ -915,6 +915,114 @@ void BW::resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValid
             }
 
             on_done("", ros.first(), validity);
+        }
+    });
+}
+
+void BW::entityBalances(Res<QString, QVector<struct balanceinfo>> on_done)
+{
+    auto f = agent()->newFrame(Frame::ENTITY_BALANCE);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QVector<struct balanceinfo>()))
+        {
+            QVector<struct balanceinfo> rv;
+            QList<PayloadObject*> pos = f->getPayloadObjects();
+            for (auto i = pos.begin(); i != pos.end(); i++)
+            {
+                PayloadObject* po = *i;
+                if (po->ponum() == bwpo::num::AccountBalance)
+                {
+                    QList<QByteArray> parts = po->contentArray().split(',');
+                    struct balanceinfo bi;
+                    bi.addr = QString(parts[0]);
+                    bi.decimal = QString(parts[1]);
+                    bi.human = QString(parts[2]);
+                    bi.value = (qreal) parts[3].toDouble();
+                    rv.push_back(bi);
+                }
+            }
+            on_done("", rv);
+        }
+    });
+}
+
+void BW::addressBalance(QString addr, Res<QString, struct balanceinfo> on_done)
+{
+    if (addr.mid(0, 2) == QStringLiteral("0x"))
+    {
+        addr = addr.mid(2, -1);
+    }
+
+    struct balanceinfo zero = {};
+    if (addr.length() != 40)
+    {
+        on_done(QStringLiteral("Address must be 40 hex characters"), zero);
+    }
+
+    auto f = agent()->newFrame(Frame::ENTITY_BALANCE);
+    f->addHeader("address", addr);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, zero))
+        {
+            QList<PayloadObject*> pos = f->getPayloadObjects();
+            if (pos.length() == 0)
+            {
+                throw BadRouterMessageException("At least one PO expected on addressBalance command", "0");
+            }
+            PayloadObject* po = pos[0];
+            QList<QByteArray> parts = po->contentArray().split(',');
+
+            struct balanceinfo bi;
+            bi.addr = QString(parts[0]);
+            bi.decimal = QString(parts[1]);
+            bi.human = QString(parts[2]);
+            bi.value = (qreal) parts[3].toDouble();
+
+            on_done("", bi);
+        }
+    });
+}
+
+void BW::getBCInteractionParams(Res<QString, struct currbcip> on_done)
+{
+    this->setBCInteractionParams(-1, -1, -1, on_done);
+}
+
+void BW::setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t maxAge, Res<QString, struct currbcip> on_done)
+{
+    auto f = agent()->newFrame(Frame::BC_PARAMS);
+
+    if (confirmations >= 0)
+    {
+        f->addHeader("confirmations", QString::number(confirmations));
+    }
+    if (timeout >= 0)
+    {
+        f->addHeader("timeout", QString::number(timeout));
+    }
+    if (maxAge >= 0)
+    {
+        f->addHeader("maxage", QString::number(maxAge));
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        struct currbcip rv = {};
+        if (f->checkResponse(on_done, rv))
+        {
+            rv.confirmations = f->getHeaderS("confirmations").toLongLong();
+            rv.timeout = f->getHeaderS("timeout").toLongLong();
+            rv.maxAge = f->getHeaderS("maxage").toLongLong();
+            rv.currentBlock = f->getHeaderS("currentblock").toULongLong();
+            rv.currentAge = f->getHeaderS("currentage").toLongLong();
+            rv.peers = f->getHeaderS("peers").toLongLong();
+            rv.highestBlock = f->getHeaderS("highest").toLongLong();
+            rv.difficulty = f->getHeaderS("difficulty").toLongLong();
+            on_done("", rv);
         }
     });
 }
