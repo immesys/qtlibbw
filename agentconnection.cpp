@@ -1,7 +1,92 @@
 #include "agentconnection.h"
 #include "message.h"
+#include "allocations.h"
 
+#include <QtEndian>
 #include <QTimer>
+
+Entity::Entity(int ronum, const char *data, int length) : RoutingObject(ronum, data, length)
+{
+    QByteArray sk;
+    if (ronum == bwpo::num::ROEntityWKey)
+    {
+        this->offset = 32;
+        sk = QByteArray::fromRawData(data, this->offset);
+        ronum = bwpo::num::ROEntity;
+    }
+
+    Q_ASSERT(ronum == bwpo::num::ROEntity);
+
+    const char* content = this->content();
+    this->vk = QByteArray::fromRawData(data, 32);
+
+    int idx = 32;
+    int ln;
+
+    forever
+    {
+        switch (content[idx])
+        {
+        case 0x02: // Creation date
+            Q_ASSERT_X(content[idx + 1] == 8, "Entity", "invalid creation date");
+            idx += 2;
+            this->created = qFromLittleEndian<qint64>((const unsigned char*) &content[idx]);
+            idx += 8;
+            break;
+        case 0x03: // Expiry date
+            Q_ASSERT_X(content[idx + 1] == 8, "Entity", "invalid expiry date");
+            idx += 2;
+            this->created = qFromLittleEndian<qint64>((const unsigned char*) &content[idx]);
+            idx += 8;
+            break;
+        case 0x04: // Delegated revoker
+            Q_ASSERT_X(content[idx + 1] == 32, "Entity", "invalid delegated revoker");
+            idx += 2;
+            this->revokers.append(QByteArray::fromRawData(&content[idx], 32));
+            idx += 32;
+            break;
+        case 0x05: // Contact
+            ln = (int) content[idx + 1];
+            this->contact = QString(QByteArray::fromRawData(&content[idx + 2], ln));
+            idx += (2 + ln);
+            break;
+        case 0x06: // Comment
+            ln = (int) content[idx + 1];
+            this->comment = QString(QByteArray::fromRawData(&content[idx + 2], ln));
+            idx += (2 + ln);
+            break;
+        case 0x00: // End
+            idx++;
+            goto done;
+        default:
+            qWarning("Unknown Entity option type: %d", content[idx]);
+            idx += (1 + (int) content[idx + 1]);
+            break;
+        }
+    }
+
+done:
+    this->sig = QByteArray::fromRawData(&content[idx], 64);
+    if (this->sk.isNull())
+    {
+        this->sk = qMove(sk);
+    }
+}
+
+QByteArray Entity::getSigningBlob()
+{
+    QByteArray rv;
+
+    if (this->sk.length() == 0 || this->length() == 0)
+    {
+        return rv;
+    }
+
+    rv.reserve(32 + this->length());
+    rv.append(this->sk);
+    rv.append(this->content(), this->length());
+    return rv;
+}
 
 
 PFrame AgentConnection::newFrame(const char *type, quint32 seqno)

@@ -470,6 +470,18 @@ public:
 
     void transferEther(int from, QString to, double ether, Res<QString> on_done);
 
+    void newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done);
+
+    void revokeDesignatedRouterOffer(int account, QString nvsk, Entity* dr, Res<QString> on_done);
+
+    void revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* dr, Res<QString> on_done);
+
+    void revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done);
+
+    void revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done);
+
+    void publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done);
+
     /**
      * @brief Get the current entity's verifying key
      * @return The base64 version of the VK

@@ -1044,6 +1044,131 @@ void BW::transferEther(int from, QString to, double ether, Res<QString> on_done)
     });
 }
 
+void BW::newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::NEW_DRO);
+    f->addHeader("account", QString::number(account));
+    f->addHeader("nsvk", nsvk);
+    if (dr != nullptr)
+    {
+        QByteArray sblob = dr->getSigningBlob();
+        PayloadObject* po = PayloadObject::load(bwpo::num::ROEntityWKey, sblob.data(), sblob.length());
+        f->addPayloadObject(po);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
+        }
+    });
+}
+
+void BW::revokeDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::REVOKE_DRO);
+    f->addHeader("account", QString::number(account));
+    f->addHeader("nsvk", nsvk);
+    if (dr != nullptr)
+    {
+        QByteArray sblob = dr->getSigningBlob();
+        PayloadObject* po = PayloadObject::load(bwpo::num::ROEntityWKey, sblob.data(), sblob.length());
+        f->addPayloadObject(po);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
+        }
+    });
+}
+
+void BW::revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* dr, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::REVOKE_DRO_ACCEPT);
+    f->addHeader("account", QString::number(account));
+    f->addHeader("drvk", drvk);
+    if (dr != nullptr)
+    {
+        QByteArray sblob = dr->getSigningBlob();
+        PayloadObject* po = PayloadObject::load(bwpo::num::ROEntityWKey, sblob.data(), sblob.length());
+        f->addPayloadObject(po);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
+        }
+    });
+}
+
+void BW::revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done)
+{
+    auto f = agent()->newFrame(Frame::REVOKE_RO);
+    f->addHeader("entity", vk);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+
+        if (f->checkResponse(on_done, QStringLiteral(""), QByteArray()))
+        {
+            QString hash = f->getHeaderS("hash");
+            QList<PayloadObject*> pos = f->getPayloadObjects();
+            if (pos.length() == 0)
+            {
+                throw BadRouterMessageException("At least one PO expected on revokeEntity command", "0");
+            }
+            PayloadObject* po = pos[0];
+            on_done("", hash, po->contentArray());
+        }
+    });
+}
+
+void BW::revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done)
+{
+    auto f = agent()->newFrame(Frame::REVOKE_RO);
+    f->addHeader("dot", hash);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+
+        if (f->checkResponse(on_done, QStringLiteral(""), QByteArray()))
+        {
+            QString hash = f->getHeaderS("hash");
+            QList<PayloadObject*> pos = f->getPayloadObjects();
+            if (pos.length() == 0)
+            {
+                throw BadRouterMessageException("At least one PO expected on revokeDOT command", "0");
+            }
+            PayloadObject* po = pos[0];
+            on_done("", hash, po->contentArray());
+        }
+    });
+}
+
+void BW::publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::PUT_REVOCATION);
+    PayloadObject* po = PayloadObject::load(bwpo::num::RORevocation, blob.data(), blob.length());
+    f->addPayloadObject(po);
+    f->addHeader("account", QString::number(account));
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+
+        if (f->checkResponse(on_done, QStringLiteral("")))
+        {
+            QString hash = f->getHeaderS("hash");
+            on_done("", hash);
+        }
+    });
+}
+
 QString BW::getVK()
 {
     return m_vk;

@@ -20,29 +20,52 @@ QT_FORWARD_DECLARE_CLASS(AgentConnection)
 class RoutingObject
 {
 public:
-    RoutingObject(int ronum, char *data, int length)
-        : m_ronum(ronum), m_data(data), m_length(length) {}
+    RoutingObject(int ronum, const char *data, int length)
+        : offset(0), m_ronum(ronum), m_data(data), m_length(length) {}
     ~RoutingObject()
     {
-        delete [] m_data;
+        delete[] m_data;
     }
     int ronum()
     {
         return m_ronum;
     }
-    const char* content ()
+
+    const char* content()
     {
-        return m_data;
-    }
-    int length() {
-        return m_length;
+        return m_data + offset;
     }
 
+    int length()
+    {
+        return m_length - offset;
+    }
+
+protected:
+    int offset;
 
 private:
     int m_ronum;
-    char *m_data;
+    const char* m_data;
     int m_length;
+};
+
+class Entity : RoutingObject
+{
+public:
+    Entity(int ronum, const char* data, int length);
+
+    QByteArray getSigningBlob();
+
+private:
+    QByteArray sig;
+    QByteArray vk;
+    QByteArray sk;
+    int64_t expires;
+    int64_t created;
+    QList<QByteArray> revokers;
+    QString contact;
+    QString comment;
 };
 
 class Header
@@ -178,40 +201,44 @@ private:
 class Frame
 {
 public:
-    constexpr static const char* HELLO            = "helo";
-    constexpr static const char* PUBLISH          = "publ";
-    constexpr static const char* SUBSCRIBE        = "subs";
-    constexpr static const char* PERSIST          = "pers";
-    constexpr static const char* LIST             = "list";
-    constexpr static const char* QUERY            = "quer";
-    constexpr static const char* TAP_SUBSCRIBE    = "tsub";
-    constexpr static const char* TAP_QUERY        = "tque";
-    constexpr static const char* MAKE_DOT         = "makd";
-    constexpr static const char* MAKE_ENTITY      = "make";
-    constexpr static const char* MAKE_CHAIN       = "makc";
-    constexpr static const char* BUILD_CHAIN      = "bldc";
-    constexpr static const char* SET_ENTITY       = "sete";
-    constexpr static const char* PUT_DOT          = "putd";
-    constexpr static const char* PUT_ENTITY       = "pute";
-    constexpr static const char* PUT_CHAIN        = "putc";
-    constexpr static const char* ENTITY_BALANCE   = "ebal";
-    constexpr static const char* ADDRESS_BALANCE  = "abal";
-    constexpr static const char* BC_PARAMS        = "bcip";
-    constexpr static const char* TRANSFER         = "xfer";
-    constexpr static const char* MK_SHORT_ALIAS   = "mksa";
-    constexpr static const char* MK_LONG_ALIAS    = "mkla";
-    constexpr static const char* RESOLVE_ALIAS    = "resa";
-    constexpr static const char* NEW_DRO          = "ndro";
-    constexpr static const char* ACCEPT_DRO       = "adro";
-    constexpr static const char* RESOLVE_REGISTRY = "rsro";
-    constexpr static const char* UPDATE_SRV       = "usrv";
-    constexpr static const char* LIST_DRO         = "ldro";
+    constexpr static const char* HELLO             = "helo";
+    constexpr static const char* PUBLISH           = "publ";
+    constexpr static const char* SUBSCRIBE         = "subs";
+    constexpr static const char* PERSIST           = "pers";
+    constexpr static const char* LIST              = "list";
+    constexpr static const char* QUERY             = "quer";
+    constexpr static const char* TAP_SUBSCRIBE     = "tsub";
+    constexpr static const char* TAP_QUERY         = "tque";
+    constexpr static const char* MAKE_DOT          = "makd";
+    constexpr static const char* MAKE_ENTITY       = "make";
+    constexpr static const char* MAKE_CHAIN        = "makc";
+    constexpr static const char* BUILD_CHAIN       = "bldc";
+    constexpr static const char* SET_ENTITY        = "sete";
+    constexpr static const char* PUT_DOT           = "putd";
+    constexpr static const char* PUT_ENTITY        = "pute";
+    constexpr static const char* PUT_CHAIN         = "putc";
+    constexpr static const char* ENTITY_BALANCE    = "ebal";
+    constexpr static const char* ADDRESS_BALANCE   = "abal";
+    constexpr static const char* BC_PARAMS         = "bcip";
+    constexpr static const char* TRANSFER          = "xfer";
+    constexpr static const char* MK_SHORT_ALIAS    = "mksa";
+    constexpr static const char* MK_LONG_ALIAS     = "mkla";
+    constexpr static const char* RESOLVE_ALIAS     = "resa";
+    constexpr static const char* NEW_DRO           = "ndro";
+    constexpr static const char* ACCEPT_DRO        = "adro";
+    constexpr static const char* RESOLVE_REGISTRY  = "rsro";
+    constexpr static const char* UPDATE_SRV        = "usrv";
+    constexpr static const char* LIST_DRO          = "ldro";
+    constexpr static const char* REVOKE_DRO        = "rdro";
+    constexpr static const char* REVOKE_DRO_ACCEPT = "rdra";
+    constexpr static const char* REVOKE_RO         = "revk";
+    constexpr static const char* PUT_REVOCATION    = "prvk";
 
-    constexpr static const char* MAKE_VIEW        = "mkvw";
-    constexpr static const char* SUBSCRIBE_VIEW   = "vsub";
-    constexpr static const char* PUBLISH_VIEW     = "vpub";
-    constexpr static const char* LIST_VIEW        = "vlst";
-    constexpr static const char* UNSUBSCRIBE      = "usub";
+    constexpr static const char* MAKE_VIEW         = "mkvw";
+    constexpr static const char* SUBSCRIBE_VIEW    = "vsub";
+    constexpr static const char* PUBLISH_VIEW      = "vpub";
+    constexpr static const char* LIST_VIEW         = "vlst";
+    constexpr static const char* UNSUBSCRIBE       = "usub";
 
     constexpr static const char* RESPONSE = "resp";
     constexpr static const char* RESULT   = "rslt";
