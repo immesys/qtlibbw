@@ -398,7 +398,7 @@ public:
      * @param account The account number to use
      * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the hash
      */
-    Q_INVOKABLE void publishDOTWithAcc(QString blob, int account,
+    Q_INVOKABLE void publishDOTWithAcc(QByteArray, int account,
                                        Res<QString, QString> on_done);
 
     /**
@@ -406,7 +406,7 @@ public:
      * @param blob
      * @param on_done
      */
-    Q_INVOKABLE void publishDOT(QString blob, Res<QString, QString> on_done);
+    Q_INVOKABLE void publishDOT(QByteArray blob, Res<QString, QString> on_done);
 
 
     /**
@@ -415,8 +415,10 @@ public:
      * @param account The account number to use
      * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the VK
      */
-    Q_INVOKABLE void publishEntityWithAcc(QString blob, int account,
+    Q_INVOKABLE void publishEntityWithAcc(QByteArray blob, int account,
                                           Res<QString, QString> on_done);
+
+    void publishEntity(QByteArray blob, Res<QString, QString> on_done);
 
     /**
      * @brief setMetadata Sets metadata published at the URI
@@ -426,6 +428,23 @@ public:
      * @param on_done Callback invoked with a single argument: an error message, or the empty string if there was no error
      */
     Q_INVOKABLE void setMetadata(QString uri, QString key, QString val, Res<QString> on_done);
+
+    Q_INVOKABLE void delMetadata(QString uri, QString key, Res<QString> on_done);
+
+    void getMetadata(QString uri, Res<QString, QVariantMap, QVariantMap> on_tuple);
+
+    void publishChainWithAcc(QByteArray blob, int account,
+                             Res<QString, QString> on_done);
+
+    void publishChain(QByteArray blob, Res<QString, QString> on_done);
+
+    void unresolveAlias(QByteArray blob, Res<QString, QString> on_done);
+
+    void resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done);
+
+    void resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done);
+
+    void resolveEmbeddedAlias(QString al, Res<QString, QString> on_done);
 
     /**
      * @brief Get the current entity's verifying key

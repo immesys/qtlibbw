@@ -604,12 +604,11 @@ void BW::list(QString uri, QString primaryAccessChain, bool autoChain,
     });
 }
 
-void BW::publishDOTWithAcc(QString blob, int account,
+void BW::publishDOTWithAcc(QByteArray blob, int account,
                            Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::PUT_DOT);
-    std::string blobstr = blob.toStdString();
-    PayloadObject* po = PayloadObject::load(bwpo::num::ROAccessDOT, blobstr.data(), blobstr.size());
+    PayloadObject* po = PayloadObject::load(bwpo::num::ROAccessDOT, blob.constData(), blob.size());
     f->addPayloadObject(po);
     f->addHeader("account", QString::number(account));
 
@@ -623,17 +622,16 @@ void BW::publishDOTWithAcc(QString blob, int account,
     });
 }
 
-void BW::publishDOT(QString blob, Res<QString, QString> on_done)
+void BW::publishDOT(QByteArray blob, Res<QString, QString> on_done)
 {
     this->publishDOTWithAcc(blob, 0, on_done);
 }
 
-void BW::publishEntityWithAcc(QString blob, int account,
+void BW::publishEntityWithAcc(QByteArray blob, int account,
                               Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::PUT_ENTITY);
-    std::string blobstr = blob.toStdString();
-    PayloadObject* po = PayloadObject::load(bwpo::num::ROEntity, blobstr.data(), blobstr.size());
+    PayloadObject* po = PayloadObject::load(bwpo::num::ROEntity, blob.constData(), blob.size());
     f->addPayloadObject(po);
     f->addHeader("account", QString::number(account));
 
@@ -645,6 +643,11 @@ void BW::publishEntityWithAcc(QString blob, int account,
             on_done("", hash);
         }
     });
+}
+
+void BW::publishEntity(QByteArray blob, Res<QString, QString> on_done)
+{
+    this->publishEntityWithAcc(blob, 0, on_done);
 }
 
 void BW::setMetadata(QString uri, QString key, QString val, Res<QString> on_done)
@@ -661,6 +664,187 @@ void BW::setMetadata(QString uri, QString key, QString val, Res<QString> on_done
     uri += key;
 
     this->publishMsgPack(uri, "", true, bwpo::num::SMetadata, metadata, QDateTime(), -1, "", false, true, on_done);
+}
+
+void BW::delMetadata(QString uri, QString key, Res<QString> on_done)
+{
+    if (uri.endsWith(QStringLiteral("/")))
+    {
+        uri.chop(1);
+    }
+    uri += "/!meta/";
+    uri += key;
+
+    this->publish(uri, "", true, QList<PayloadObject*>(), QDateTime(), -1, "", false, true, on_done);
+}
+
+struct metadata_kv
+{
+    QString k;
+    QVariantMap m;
+    QString o;
+};
+
+struct metadata_info
+{
+    QVector<struct metadata_kv> chans;
+    int numreturned;
+    int errorhappened;
+};
+
+void BW::getMetadata(QString uri, Res<QString, QVariantMap, QVariantMap> on_tuple)
+{
+    QStringList parts = uri.split('/', QString::SkipEmptyParts);
+    QString turi("");
+
+    struct metadata_info* mi = new struct metadata_info;
+    mi->numreturned = 0;
+    mi->errorhappened = false;
+
+    int li = 0;
+    for (auto i = parts.begin(); i != parts.end(); i++)
+    {
+        turi += *i;
+        turi += "/";
+
+        QString touse(turi);
+        touse += "!meta/";
+
+        this->query(touse, "", true, QDateTime(), -1, "",
+                    false, false, [=](QString error, QList<PMessage> messages)
+        {
+
+            if (error.length() != 0)
+            {
+                on_tuple(error, QVariantMap(), QVariantMap());
+                mi->errorhappened = true;
+            }
+            else
+            {
+                struct metadata_kv& metadata = mi->chans[li];
+
+                metadata.o = turi;
+                for (auto j = messages.begin(); j != messages.end(); j++)
+                {
+                    PMessage& sm = *j;
+                    QString uri = sm->getHeaderS("uri");
+                    QStringList uriparts = uri.split('/');
+                    metadata.k = uriparts.last();
+                    QList<PayloadObject*> pos = sm->FilterPOs(bwpo::num::SMetadata, bwpo::mask::SMetadata);
+                    for (auto k = pos.begin(); k != pos.end(); k++)
+                    {
+                        QVariant dictv = MsgPack::unpack((*k)->contentArray());
+                        QVariantMap dict = dictv.toMap();
+                        metadata.m = dict;
+                    }
+                }
+            }
+
+            if (++mi->numreturned == mi->chans.length())
+            {
+                if (!mi->errorhappened)
+                {
+                    /* Call on_tuple. */
+                    QVariantMap rvO;
+                    QVariantMap rvM;
+
+                    for (auto res = mi->chans.begin(); res != mi->chans.end(); res++)
+                    {
+                        rvO[res->k] = res->o;
+                        rvM[res->k] = res->m;
+                    }
+
+                    on_tuple("", rvM, rvO);
+                }
+
+                delete mi;
+            }
+        });
+
+        li++;
+    }
+}
+
+void BW::publishChainWithAcc(QByteArray blob, int account, Res<QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::PUT_CHAIN);
+    PayloadObject* po = PayloadObject::load(bwpo::num::ROAccessDChain, blob.constData(), blob.size());
+    f->addPayloadObject(po);
+    f->addHeader("account", QString::number(account));
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral("")))
+        {
+            QString hash = f->getHeaderS("vk");
+            on_done("", hash);
+        }
+    });
+}
+
+void BW::publishChain(QByteArray blob, Res<QString, QString> on_done)
+{
+    this->publishChainWithAcc(blob, 0, on_done);
+}
+
+void BW::unresolveAlias(QByteArray blob, Res<QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::RESOLVE_ALIAS);
+    f->addHeaderB("unresolve", blob);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral("")))
+        {
+            QString v = f->getHeaderS("value");
+            on_done("", v);
+        }
+    });
+}
+
+void BW::resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done)
+{
+    auto f = agent()->newFrame(Frame::RESOLVE_ALIAS);
+    f->addHeader("longkey", al);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QByteArray(), false))
+        {
+            QByteArray v = f->getHeaderB("value");
+            on_done("", v, v.count('\0') == v.size());
+        }
+    });
+}
+
+void BW::resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done)
+{
+    auto f = agent()->newFrame(Frame::RESOLVE_ALIAS);
+    f->addHeader("shortkey", al);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QByteArray(), false))
+        {
+            QByteArray v = f->getHeaderB("value");
+            on_done("", v, v.count('\0') == v.size());
+        }
+    });
+}
+
+void BW::resolveEmbeddedAlias(QString al, Res<QString, QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::RESOLVE_ALIAS);
+    f->addHeader("longkey", al);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done, QStringLiteral("")))
+        {
+            QString v = f->getHeaderS("value");
+            on_done("", v);
+        }
+    });
 }
 
 QString BW::getVK()

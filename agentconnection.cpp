@@ -158,7 +158,7 @@ void AgentConnection::onArrivedFrame(PFrame f)
 
     Q_ASSERT(outstanding.contains(f->seqno()));
     bool present;
-    bool final = f->getHeaderB("finished", &present);
+    bool final = f->getHeaderBool("finished", &present);
     Q_ASSERT_X(present, "frame decode", "finished kv missing");
     outstanding.value(f->seqno())(f, final);
     if (final) {
@@ -224,7 +224,7 @@ void Frame::writeTo(QIODevice *o)
 }
 
 //Returns false if not there
-bool Frame::getHeaderB(QString key, bool *valid)
+bool Frame::getHeaderBool(QString key, bool *valid)
 {
     foreach(auto h, headers)
     {
@@ -238,6 +238,22 @@ bool Frame::getHeaderB(QString key, bool *valid)
     if (valid != NULL)
         *valid = false;
     return false;
+}
+
+QByteArray Frame::getHeaderB(QString key, bool* valid)
+{
+    foreach(auto h, headers)
+    {
+        if (h->key() == key)
+        {
+            if (valid != NULL)
+                *valid = true;
+            return h->asByteArray();
+        }
+    }
+    if (valid != NULL)
+        *valid = false;
+    return QByteArray();
 }
 
 //Returns "" if not there
@@ -286,8 +302,13 @@ int Header::asInt()
 {
     return asString().toInt();
 }
+
 QString Header::asString()
 {
-    return QString::fromUtf8(m_data,m_length);
+    return QString::fromUtf8(m_data, m_length);
 }
 
+QByteArray Header::asByteArray()
+{
+    return QByteArray(m_data, m_length);
+}

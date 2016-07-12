@@ -76,6 +76,7 @@ public:
     bool asBool();
     int asInt();
     QString asString();
+    QByteArray asByteArray();
 private:
     QString m_key;
     char* m_data;
@@ -241,11 +242,13 @@ public:
     }
 
     //Returns false if not there
-    bool getHeaderB(QString key, bool *valid = NULL);
+    bool getHeaderBool(QString key, bool *valid = nullptr);
+    //Returns empty array if not there
+    QByteArray getHeaderB(QString key, bool* valid = nullptr);
     //Returns "" if not there
-    QString getHeaderS(QString key, bool *valid = NULL);
+    QString getHeaderS(QString key, bool *valid = nullptr);
     //Returns -1 if not there
-    int getHeaderI(QString key, bool *valid = NULL);
+    int getHeaderI(QString key, bool *valid = nullptr);
 
     template <typename ...Tz> bool checkResponse(Res<QString,Tz...> cb, Tz ...args)
     {

@@ -13,6 +13,11 @@ PMessage Message::fromFrame(PFrame f)
     return QSharedPointer<Message>(rv);
 }
 
+QString Message::getHeaderS(QString key)
+{
+    return frame->getHeaderS(key);
+}
+
 QList<PayloadObject*> Message::POs()
 {
     return frame->pos;

@@ -14,6 +14,7 @@ class Message
 public:
     Message();
     static PMessage fromFrame(PFrame f);
+    QString getHeaderS(QString key);
     QList<PayloadObject*> POs();
     QList<PayloadObject*> FilterPOs(int ponum);
     QList<PayloadObject*> FilterPOs(int ponum, int mask);
