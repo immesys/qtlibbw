@@ -1114,7 +1114,6 @@ void BW::revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done)
 
     agent()->transact(this, f, [=](PFrame f, bool)
     {
-
         if (f->checkResponse(on_done, QStringLiteral(""), QByteArray()))
         {
             QString hash = f->getHeaderS("hash");
@@ -1136,7 +1135,6 @@ void BW::revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done)
 
     agent()->transact(this, f, [=](PFrame f, bool)
     {
-
         if (f->checkResponse(on_done, QStringLiteral(""), QByteArray()))
         {
             QString hash = f->getHeaderS("hash");
@@ -1160,11 +1158,92 @@ void BW::publishRevocation(int account, QByteArray blob, Res<QString, QString> o
 
     agent()->transact(this, f, [=](PFrame f, bool)
     {
-
         if (f->checkResponse(on_done, QStringLiteral("")))
         {
             QString hash = f->getHeaderS("hash");
             on_done("", hash);
+        }
+    });
+}
+
+void BW::getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QStringList> on_done)
+{
+    auto f = agent()->newFrame(Frame::LIST_DRO);
+    f->addHeader("nsvk", nsvk);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        QStringList rv;
+        if (f->checkResponse(on_done, QStringLiteral(""), QStringLiteral(""), rv))
+        {
+            auto pos = f->getPayloadObjects();
+            for (auto i = pos.begin(); i != pos.end(); i++)
+            {
+                PayloadObject* po = *i;
+                if (po->ponum() == bwpo::num::RODRVK)
+                {
+                    rv.append(po->contentArray().toBase64(QByteArray::Base64UrlEncoding));
+                }
+            }
+            on_done("", f->getHeaderS("active"), f->getHeaderS("srv"), rv);
+        }
+    });
+}
+
+void BW::acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::ACCEPT_DRO);
+    f->addHeader("account", QString::number(account));
+    f->addHeader("drvk", drvk);
+    if (ns != nullptr)
+    {
+        QByteArray sblob = ns->getSigningBlob();
+        PayloadObject* po = PayloadObject::load(bwpo::num::ROEntityWKey, sblob.data(), sblob.length());
+        f->addPayloadObject(po);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
+        }
+    });
+}
+
+void BW::setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::UPDATE_SRV);
+    f->addHeader("account", QString::number(account));
+    f->addHeader("srv", srv);
+    if (dr != nullptr)
+    {
+        QByteArray sblob = dr->getSigningBlob();
+        PayloadObject* po = PayloadObject::load(bwpo::num::ROEntityWKey, sblob.data(), sblob.length());
+        f->addPayloadObject(po);
+    }
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
+        }
+    });
+}
+
+void BW::createLongAlias(int account, QByteArray key, QByteArray val, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::MK_LONG_ALIAS);
+    f->addHeader("account", QString::number(account));
+    f->addHeaderB("content", val);
+    f->addHeaderB("key", key);
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
         }
     });
 }

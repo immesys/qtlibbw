@@ -482,6 +482,14 @@ public:
 
     void publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done);
 
+    void getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QStringList> on_done);
+
+    void acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done);
+
+    void setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<QString> on_done);
+
+    void createLongAlias(int account, QByteArray key, QByteArray val, Res<QString> on_done);
+
     /**
      * @brief Get the current entity's verifying key
      * @return The base64 version of the VK
