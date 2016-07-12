@@ -1027,6 +1027,23 @@ void BW::setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t 
     });
 }
 
+void BW::transferEther(int from, QString to, double ether, Res<QString> on_done)
+{
+    auto f = agent()->newFrame(Frame::TRANSFER);
+
+    f->addHeader("account", QString::number(from));
+    f->addHeader("address", to);
+    f->addHeader("valuewei", QString::number(ether * 1e18, 'f', 0));
+
+    agent()->transact(this, f, [=](PFrame f, bool)
+    {
+        if (f->checkResponse(on_done))
+        {
+            on_done("");
+        }
+    });
+}
+
 QString BW::getVK()
 {
     return m_vk;

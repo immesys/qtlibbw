@@ -468,6 +468,8 @@ public:
     void setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t maxAge,
                                 Res<QString, struct currbcip> on_done);
 
+    void transferEther(int from, QString to, double ether, Res<QString> on_done);
+
     /**
      * @brief Get the current entity's verifying key
      * @return The base64 version of the VK
