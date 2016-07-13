@@ -1,6 +1,7 @@
-#ifndef BOSSWAVE_H
-#define BOSSWAVE_H
+#ifndef QTLIBBW_BOSSWAVE_H
+#define QTLIBBW_BOSSWAVE_H
 
+#include <QDateTime>
 #include <QQuickItem>
 #include <QTimer>
 #include <QJSValueList>
@@ -10,7 +11,15 @@
 #include "agentconnection.h"
 #include "message.h"
 
+QT_FORWARD_DECLARE_CLASS(MetadataTuple)
+QT_FORWARD_DECLARE_CLASS(BalanceInfo)
+QT_FORWARD_DECLARE_CLASS(SimpleChain)
 QT_FORWARD_DECLARE_CLASS(BWView)
+
+const QString elaborateDefault("");
+const QString elaborateFull("full");
+const QString elaboratePartial("partial");
+const QString elaborateNone("none");
 
 
 /*! \mainpage BOSSWAVE Wavelet Viewer
@@ -66,6 +75,16 @@ public:
     BW(QObject *parent = 0);
     ~BW();
 
+    enum RegistryValidity
+    {
+        StateUnknown = 0,
+        StateValid = 1,
+        StateExpired = 2,
+        StateRevoked = 3,
+        StateError = 4
+    };
+    Q_ENUM(RegistryValidity)
+
     // This is used by the QML engine to instantiate the bosswave singleton
     static QObject *qmlSingleton(QQmlEngine *engine, QJSEngine *scriptEngine);
 
@@ -104,13 +123,150 @@ public:
     void connectAgent(QString host, quint16 port);
 
     /**
+     * @brief createEntity Create a new entity
+     * @param expiry The time at which the entity expires. Ignored if invalid (year == 0)
+     * @param expiryDelta The number of milliseconds after the current time at which the entity expires
+     * @param contact Contact info
+     * @param comment Comment
+     * @param revokers List of revoker VKs
+     * @param omitCreationDate If true, the creation date is omitted
+     * @param on_done Callback that takes as arguments (1) the error message (empty string if none), (2) the VK of the new entity, and (3) binary representation
+     */
+    Q_INVOKABLE void createEntity(QDateTime expiry, qreal expiryDelta, QString contact,
+                                  QString comment, QList<QString> revokers, bool omitCreationDate,
+                                  Res<QString, QString, QByteArray> on_done);
+
+    /**
+     * @brief createDOT Create a Declaration of Trust (DOT)
+     * @param isPermission True if this DOT is a permission DOT (which are not yet implemented)
+     * @param to The entity to which the DOT is created
+     * @param ttl The time-to-live (TTL) of this DOT
+     * @param expiry The time at which the entity expires. Ignored if invalid (year == 0)
+     * @param expiryDelta The number of milliseconds after the current time at which the entity expires
+     * @param contact Contact info
+     * @param comment Comment
+     * @param revokers List of revokers
+     * @param omitCreationDate If true, the creation date is omitted
+     * @param uri The URI to which permissions are granted
+     * @param accessPermissions String describing the permissions granted
+     * @param appPermissions Used for permission DOTs
+     * @param on_done Callback that takes are arguments (1) the error message (empty string if none), (2) the hash of the new dot, and (3) binary representation
+     */
+    Q_INVOKABLE void createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime expiry,
+                               qreal expiryDelta, QString contact, QString comment,
+                               QList<QString> revokers, bool omitCreationDate, QString uri,
+                               QString accessPermissions, QVariantMap appPermissions,
+                               Res<QString, QString, QByteArray> on_done);
+
+    void createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate,
+                        Res<QString, QString, RoutingObject*> on_done);
+
+    /**
+     * @brief publish a bosswave message
+     * @param uri the URI to publish to
+     * @param poz the payload objects to publish
+     * @param on_done a function to call when the operation is complete.
+     *
+     * @ingroup cpp
+     * @since 1.0
+     */
+    void publish(QString uri, QString primaryAccessChain, bool autoChain,
+                 QList<RoutingObject*> roz, QList<PayloadObject*> poz,
+                 QDateTime expiry, qreal expiryDelta, QString elaboratePAC, bool doNotVerify,
+                 bool persist, Res<QString> on_done = _nop_res_status);
+
+
+    /**
+     * @brief Publish a MsgPack object to the given URI
+     *
+     * @ingroup qml
+     * @since 1.0
+     */
+    void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                        int ponum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                        QString elaboratePAC, bool doNotVerify, bool persist,
+                        Res<QString> on_done = _nop_res_status);
+
+    Q_INVOKABLE void publishMsgPack(QVariantMap params, QJSValue on_done);
+
+    /**
+      * @brief Publish text of the specified type to the given URI
+      *
+      * @ingroup qml
+      * @since 1.3
+      */
+    void publishText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                     int ponum, QString msg, QDateTime expiry, qreal expiryDelta,
+                     QString elaboratePAC, bool doNotVerify, bool persist,
+                     Res<QString> on_done = _nop_res_status);
+
+    Q_INVOKABLE void publishText(QVariantMap params, QJSValue on_done);
+
+    /**
+     * @brief Subscribe to the given URI
+     * @param uri The URI to subscribe to
+     * @param on_msg A callback for each received message
+     * @param on_done The callback to be executed with the error message. Empty implies success.
+     * @param on_handle The callback to be executed with the subscribe handle.
+     *
+     * @ingroup cpp
+     * @since 1.1
+     */
+    void subscribe(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                   bool doNotVerify, bool leavePacked, Res<PMessage> on_msg,
+                   Res<QString> on_done = _nop_res_status, Res<QString> on_handle = _nop_res_status);
+
+    /**
+     * @brief Subscribe to a MsgPack resource
+     * @param uri The resource to subscribe to
+     * @param on_msg The callback to be called for each message
+     * @param on_done The callback to be executed with the error message. Empty implies success.
+     * @param on_handle The callback to be executed with the subscribe handle.
+     *
+     * This will unpack msgpack PO's and pass them to the on_msg callback
+     *
+     * @ingroup qml
+     * @since 1.1
+     */
+    void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
+                          Res<QString> on_done = _nop_res_status,
+                          Res<QString> on_handle = _nop_res_status);
+
+    Q_INVOKABLE void subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle);
+
+    void subscribeText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                       QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                       bool doNotVerify, bool leavePacked, Res<int, QString> on_msg,
+                       Res<QString> on_done = _nop_res_status,
+                       Res<QString> on_handle = _nop_res_status);
+
+    Q_INVOKABLE void subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle);
+
+    /**
+     * @brief Unsubscribe from a resource
+     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param on_done The callback to be executed with the error message. "" implies success.
+     */
+    void unsubscribe(QString handle, Res<QString> on_done = _nop_res_status);
+
+    /**
+     * @brief Unsubscribe from a resource
+     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param on_done The callback to be executed with the error message. "" implies success.
+     */
+    Q_INVOKABLE void unsubscribe(QString handle, QJSValue on_done);
+
+    /**
      * @brief Set the entity
      * @param filename a BW entity file to use
      *
      * @ingroup cpp
      * @since 1.0
      */
-    void setEntityFile(QString filename, Res<QString> on_done = _nop_res_status);
+    void setEntityFile(QString filename, Res<QString, QString> on_done = _nop_res_status);
 
     /**
      * @brief Set the entity
@@ -123,7 +279,7 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void setEntity(QByteArray &contents, Res<QString> on_done = _nop_res_status);
+    void setEntity(QByteArray keyfile, Res<QString, QString> on_done = _nop_res_status);
 
     /**
      * @brief Set the entity by reading the file denoted by $BW2_DEFAULT_ENTITY
@@ -132,82 +288,27 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void setEntityFromEnviron(Res<QString> on_done = _nop_res_status);
+    void setEntityFromEnviron(Res<QString, QString> on_done = _nop_res_status);
 
     /**
-     * @brief publish a bosswave message
-     * @param uri the URI to publish to
-     * @param poz the payload objects to publish
-     * @param on_done a function to call when the operation is complete.
-     *
-     * @ingroup cpp
-     * @since 1.0
+     * @brief buildChain Builds a DOT chain.
+     * @param uri The URI to which to build the chain
+     * @param permissions The permissions that the chains must provide
+     * @param to The entity to which the chain is built
+     * @param on_done Called for each chain that is built. Arguments are (1) error message (or empty string if none), (2) DOT chain object (or empty dict if none), and (3) boolean which is true if this is the final DOT chain
      */
-    void publish(QString uri, QList<PayloadObject*> poz, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void buildChain(QString uri, QString permissions, QString to,
+                                Res<QString, SimpleChain*, bool> on_done);
 
     /**
-     * @brief Publish a MsgPack object to the given URI
-     *
-     * @ingroup qml
-     * @since 1.0
+     * @brief buildAnyChain Convenience function that calls buildChain and only gives the first result, if any.
+     * @param uri The URI to which to build the chain
+     * @param permissions The permissions that the chains must provide
+     * @param to The entity to which the chain is built
+     * @param on_done Same as BuildChain, but only has the first two arguments.
      */
-    Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, Res<QString> on_done = _nop_res_status);
-
-    /**
-     * @brief Publish a MsgPack object to the given URI
-     *
-     * @ingroup qml
-     * @since 1.0
-     */
-    Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, Res<QString> on_done = _nop_res_status);
-
-    /**
-     * @brief Publish a MsgPack object to the given URI, with a javascript callback
-     *
-     * @ingroup qml
-     * @since 1.0
-     */
-    Q_INVOKABLE void publishMsgPack(QString uri, QString PODF, QVariantMap msg, QJSValue on_done);
-
-    /**
-     * @brief Publish a MsgPack object to the given URI, with a javascript callback
-     *
-     * @ingroup qml
-     * @since 1.0
-     */
-    Q_INVOKABLE void publishMsgPack(QString uri, int PONum, QVariantMap msg, QJSValue on_done);
-
-    /**
-     * @brief Publish plain text to the given URI
-     *
-     * @ingroup qml
-     * @since 1.3
-     */
-    Q_INVOKABLE void publishText(QString uri, QString msg, Res<QString> on_done = _nop_res_status);
-
-    /**
-     * @brief Publish plain text to the given URI, with a javascript callback
-     *
-     * @ingroup qml
-     * @since 1.3
-     */
-    Q_INVOKABLE void publishText(QString uri, QString msg, QJSValue on_done);
-
-    /**
-      * @brief Publish text of the specified type to the given URI
-      *
-      * @ingroup qml
-      * @since 1.3
-      */
-    Q_INVOKABLE void publishText(QString uri, int PONum, QString msg, Res<QString> on_done = _nop_res_status);
-
-    /**
-      * @brief Publish text of the specified type to the given URI, with a javascript callback
-      *
-      * @ingroup qml
-      * @since 1.3
-      */
-    Q_INVOKABLE void publishText(QString uri, int PONum, QString msg, QJSValue on_done);
+    Q_INVOKABLE void buildAnyChain(QString uri, QString permissions, QString to,
+                                   Res<QString, SimpleChain*> on_done);
 
     /**
      * @brief Query the given URI pattern and return all messages that match
@@ -217,53 +318,118 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void query(QString uri, Res<QString, QList<PMessage>> on_done);
+    void query(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+               QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+               bool doNotVerify, bool leavePacked,
+               Res<QString, PMessage, bool> on_result);
+
+    void queryList(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                   bool doNotVerify, bool leavePacked,
+                   Res<QString, QList<PMessage>> on_done);
+
 
     /**
-     * @brief Subscribe to the given URI
-     * @param uri The URI to subscribe to
-     * @param on_msg A callback for each received message
-     * @param on_done The callback to be executed with the error message. Empty implies success
-     *
-     * @ingroup cpp
-     * @since 1.1
+     * @brief list Lists all immediate children of a URI that have persisted messages in their children
+     * @param uri The URI whose children to list
+     * @param primaryAccessChain The primary access chain
+     * @param autoChain
+     * @param expiry Expiry time for this message. Ignored if invalid (year == 0)
+     * @param expiryDelta Milliseconds after now when this message should expire
+     * @param elaboratePAC
+     * @param doNotVerify
+     * @param on_done
      */
-    void subscribe(QString uri, Res<PMessage> on_msg, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void list(QString uri, QString primaryAccessChain, bool autoChain,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, Res<QString, QString, bool> on_done);
 
     /**
-     * @brief Subscribe to a MsgPack resource
-     * @param uri The resource to subscribe to
-     * @param on_msg The callback to be called for each message
-     * @param on_done The callback to be executed with the error message. Empty implies success.
-     *
-     * This will unpack msgpack PO's and pass them to the on_msg callback
-     *
-     * @ingroup qml
-     * @since 1.1
+     * @brief publishDOTWithAcc Publish a DOT, using an account to bankroll the operation
+     * @param blob The DOT to publish
+     * @param account The account number to use
+     * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the hash
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, Res<QVariantMap> on_msg, Res<QString> on_done = _nop_res_status);
+    Q_INVOKABLE void publishDOTWithAcc(QByteArray, int account,
+                                       Res<QString, QString> on_done);
 
     /**
-     * @brief Subscribe to a MsgPack resource
-     * @param uri The resource to subscribe to
-     * @param on_msg The callback to be called for each message (javascript function)
-     *
-     * @ingroup qml
-     * @since 1.1
+     * @brief publishDOT Like publishDOTWithAcc, except that you don't have to explicitly specify the account
+     * @param blob
+     * @param on_done
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg);
+    Q_INVOKABLE void publishDOT(QByteArray blob, Res<QString, QString> on_done);
+
 
     /**
-     * @brief Subscribe to a MsgPack resource
-     * @param uri The resource to subscribe to
-     * @param on_msg The callback to be called for each message (javascript function)
-     * @param on_done The callback to be executed with the error message. "" implies success.
-     *
-     * @ingroup qml
-     * @since 1.1
+     * @brief publishEntityWithAcc Publish an entity, using an account to bankroll the operation
+     * @param blob The entity to publish
+     * @param account The account number to use
+     * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the VK
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, QJSValue on_msg, QJSValue on_done);
+    Q_INVOKABLE void publishEntityWithAcc(QByteArray blob, int account,
+                                          Res<QString, QString> on_done);
 
+    void publishEntity(QByteArray blob, Res<QString, QString> on_done);
+
+    /**
+     * @brief setMetadata Sets metadata published at the URI
+     * @param uri
+     * @param key
+     * @param val
+     * @param on_done Callback invoked with a single argument: an error message, or the empty string if there was no error
+     */
+    Q_INVOKABLE void setMetadata(QString uri, QString key, QString val, Res<QString> on_done);
+
+    Q_INVOKABLE void delMetadata(QString uri, QString key, Res<QString> on_done);
+
+    void getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_tuple);
+
+    void publishChainWithAcc(QByteArray blob, int account,
+                             Res<QString, QString> on_done);
+
+    void publishChain(QByteArray blob, Res<QString, QString> on_done);
+
+    void unresolveAlias(QByteArray blob, Res<QString, QString> on_done);
+
+    void resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done);
+
+    void resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done);
+
+    void resolveEmbeddedAlias(QString al, Res<QString, QString> on_done);
+
+    void resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done);
+
+    void entityBalances(Res<QString, QVector<struct balanceinfo>> on_done);
+
+    void addressBalance(QString addr, Res<QString, struct balanceinfo> on_done);
+
+    void getBCInteractionParams(Res<QString, struct currbcip> on_done);
+
+    void setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t maxAge,
+                                Res<QString, struct currbcip> on_done);
+
+    void transferEther(int from, QString to, double ether, Res<QString> on_done);
+
+    void newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done);
+
+    void revokeDesignatedRouterOffer(int account, QString nvsk, Entity* dr, Res<QString> on_done);
+
+    void revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* dr, Res<QString> on_done);
+
+    void revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done);
+
+    void revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done);
+
+    void publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done);
+
+    void getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QList<QString>> on_done);
+
+    void acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done);
+
+    void setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<QString> on_done);
+
+    void createLongAlias(int account, QByteArray key, QByteArray val, Res<QString> on_done);
 
     /**
      * @brief Get the current entity's verifying key
@@ -320,6 +486,92 @@ private:
     friend BWView;
 };
 
+class BalanceInfo : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString addr MEMBER addr)
+    Q_PROPERTY(QString human MEMBER human)
+    Q_PROPERTY(QString decimal MEMBER decimal)
+    Q_PROPERTY(qreal value MEMBER value)
+
+public:
+
+    QString addr;
+    QString human;
+    QString decimal;
+    qreal value;
+};
+
+class MetadataTuple
+{
+public:
+    MetadataTuple()
+        : value(), timestamp(0) {}
+
+    MetadataTuple(QString val, int64_t ts)
+        : value(val), timestamp(ts) {}
+
+    MetadataTuple(const QVariantMap& metadata)
+        : value(metadata["val"].toString()), timestamp(metadata["ts"].toLongLong()) {}
+
+    QVariantMap toVariantMap()
+    {
+        QVariantMap metadata;
+        metadata["val"] = this->value;
+        metadata["ts"] = QVariant::fromValue(this->timestamp);
+        return metadata;
+    }
+
+    MetadataTuple& operator=(const MetadataTuple& other)
+    {
+        this->value = other.value;
+        this->timestamp = other.timestamp;
+        return *this;
+    }
+
+    QString value;
+    int64_t timestamp;
+};
+
+struct currbcip
+{
+    int64_t confirmations;
+    int64_t timeout;
+    int64_t maxAge;
+    int64_t currentAge;
+    uint64_t currentBlock;
+    int64_t peers;
+    int64_t highestBlock;
+    int64_t difficulty;
+};
+
+struct balanceinfo
+{
+    QString addr;
+    QString human;
+    QString decimal;
+    qreal value;
+};
+
+class SimpleChain : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString hash MEMBER hash)
+    Q_PROPERTY(QString permissions MEMBER permissions)
+    Q_PROPERTY(QString uri MEMBER uri)
+    Q_PROPERTY(QString to MEMBER to)
+    Q_PROPERTY(QString content MEMBER content)
+    Q_PROPERTY(bool valid MEMBER valid)
+
+public:
+    QString hash;
+    QString permissions;
+    QString uri;
+    QString to;
+    QString content;
+    bool valid;
+};
+
 class BWView : public QObject
 {
     Q_OBJECT
@@ -346,6 +598,6 @@ private:
 //Q_DECLARE_METATYPE(BWView*)
 
 
-#endif // BOSSWAVE_H
+#endif // QTLIBBW_BOSSWAVE_H
 
 

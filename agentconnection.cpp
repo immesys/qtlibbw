@@ -1,7 +1,92 @@
 #include "agentconnection.h"
 #include "message.h"
+#include "allocations.h"
 
+#include <QtEndian>
 #include <QTimer>
+
+Entity::Entity(int ronum, const char *data, int length) : RoutingObject(ronum, data, length)
+{
+    QByteArray sk;
+    if (ronum == bwpo::num::ROEntityWKey)
+    {
+        this->offset = 32;
+        sk = QByteArray::fromRawData(data, this->offset);
+        ronum = bwpo::num::ROEntity;
+    }
+
+    Q_ASSERT(ronum == bwpo::num::ROEntity);
+
+    const char* content = this->content();
+    this->vk = QByteArray::fromRawData(data, 32);
+
+    int idx = 32;
+    int ln;
+
+    forever
+    {
+        switch (content[idx])
+        {
+        case 0x02: // Creation date
+            Q_ASSERT_X(content[idx + 1] == 8, "Entity", "invalid creation date");
+            idx += 2;
+            this->created = qFromLittleEndian<qint64>((const unsigned char*) &content[idx]);
+            idx += 8;
+            break;
+        case 0x03: // Expiry date
+            Q_ASSERT_X(content[idx + 1] == 8, "Entity", "invalid expiry date");
+            idx += 2;
+            this->created = qFromLittleEndian<qint64>((const unsigned char*) &content[idx]);
+            idx += 8;
+            break;
+        case 0x04: // Delegated revoker
+            Q_ASSERT_X(content[idx + 1] == 32, "Entity", "invalid delegated revoker");
+            idx += 2;
+            this->revokers.append(QByteArray::fromRawData(&content[idx], 32));
+            idx += 32;
+            break;
+        case 0x05: // Contact
+            ln = (int) content[idx + 1];
+            this->contact = QString(QByteArray::fromRawData(&content[idx + 2], ln));
+            idx += (2 + ln);
+            break;
+        case 0x06: // Comment
+            ln = (int) content[idx + 1];
+            this->comment = QString(QByteArray::fromRawData(&content[idx + 2], ln));
+            idx += (2 + ln);
+            break;
+        case 0x00: // End
+            idx++;
+            goto done;
+        default:
+            qWarning("Unknown Entity option type: %d", content[idx]);
+            idx += (1 + (int) content[idx + 1]);
+            break;
+        }
+    }
+
+done:
+    this->sig = QByteArray::fromRawData(&content[idx], 64);
+    if (this->sk.isNull())
+    {
+        this->sk = qMove(sk);
+    }
+}
+
+QByteArray Entity::getSigningBlob()
+{
+    QByteArray rv;
+
+    if (this->sk.length() == 0 || this->length() == 0)
+    {
+        return rv;
+    }
+
+    rv.reserve(32 + this->length());
+    rv.append(this->sk);
+    rv.append(this->content(), this->length());
+    return rv;
+}
 
 
 PFrame AgentConnection::newFrame(const char *type, quint32 seqno)
@@ -158,7 +243,7 @@ void AgentConnection::onArrivedFrame(PFrame f)
 
     Q_ASSERT(outstanding.contains(f->seqno()));
     bool present;
-    bool final = f->getHeaderB("finished", &present);
+    bool final = f->getHeaderBool("finished", &present);
     Q_ASSERT_X(present, "frame decode", "finished kv missing");
     outstanding.value(f->seqno())(f, final);
     if (final) {
@@ -224,7 +309,7 @@ void Frame::writeTo(QIODevice *o)
 }
 
 //Returns false if not there
-bool Frame::getHeaderB(QString key, bool *valid)
+bool Frame::getHeaderBool(QString key, bool *valid)
 {
     foreach(auto h, headers)
     {
@@ -238,6 +323,22 @@ bool Frame::getHeaderB(QString key, bool *valid)
     if (valid != NULL)
         *valid = false;
     return false;
+}
+
+QByteArray Frame::getHeaderB(QString key, bool* valid)
+{
+    foreach(auto h, headers)
+    {
+        if (h->key() == key)
+        {
+            if (valid != NULL)
+                *valid = true;
+            return h->asByteArray();
+        }
+    }
+    if (valid != NULL)
+        *valid = false;
+    return QByteArray();
 }
 
 //Returns "" if not there
@@ -286,8 +387,13 @@ int Header::asInt()
 {
     return asString().toInt();
 }
+
 QString Header::asString()
 {
-    return QString::fromUtf8(m_data,m_length);
+    return QString::fromUtf8(m_data, m_length);
 }
 
+QByteArray Header::asByteArray()
+{
+    return QByteArray(m_data, m_length);
+}

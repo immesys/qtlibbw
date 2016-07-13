@@ -1,9 +1,9 @@
-#ifndef LIBBW_H
-#define LIBBW_H
+#ifndef QTLIBBW_LIBBW_H
+#define QTLIBBW_LIBBW_H
 
 #include "bosswave.h"
 #include "agentconnection.h"
 
 void initLibBW();
 
-#endif // LIBBW
+#endif // QTLIBBW_LIBBW_H
