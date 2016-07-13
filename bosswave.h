@@ -1,5 +1,5 @@
-#ifndef BOSSWAVE_H
-#define BOSSWAVE_H
+#ifndef QTLIBBW_BOSSWAVE_H
+#define QTLIBBW_BOSSWAVE_H
 
 #include <QDateTime>
 #include <QQuickItem>
@@ -182,10 +182,12 @@ public:
      * @ingroup qml
      * @since 1.0
      */
-    Q_INVOKABLE void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
-                                    int ponum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
-                                    QString elaboratePAC, bool doNotVerify, bool persist,
-                                    Res<QString> on_done = _nop_res_status);
+    void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                        int ponum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
+                        QString elaboratePAC, bool doNotVerify, bool persist,
+                        Res<QString> on_done = _nop_res_status);
+
+    Q_INVOKABLE void publishMsgPack(QVariantMap params, QJSValue on_done);
 
     /**
       * @brief Publish text of the specified type to the given URI
@@ -193,10 +195,12 @@ public:
       * @ingroup qml
       * @since 1.3
       */
-    Q_INVOKABLE void publishText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
-                                 int ponum, QString msg, QDateTime expiry, qreal expiryDelta,
-                                 QString elaboratePAC, bool doNotVerify, bool persist,
-                                 Res<QString> on_done = _nop_res_status);
+    void publishText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                     int ponum, QString msg, QDateTime expiry, qreal expiryDelta,
+                     QString elaboratePAC, bool doNotVerify, bool persist,
+                     Res<QString> on_done = _nop_res_status);
+
+    Q_INVOKABLE void publishText(QVariantMap params, QJSValue on_done);
 
     /**
      * @brief Subscribe to the given URI
@@ -225,11 +229,21 @@ public:
      * @ingroup qml
      * @since 1.1
      */
-    Q_INVOKABLE void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
-                                      QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
-                                      bool doNotVerify, bool leavePacked, Res<QVariantMap> on_msg,
-                                      Res<QString> on_done = _nop_res_status,
-                                      Res<QString> on_handle = _nop_res_status);
+    void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
+                          Res<QString> on_done = _nop_res_status,
+                          Res<QString> on_handle = _nop_res_status);
+
+    Q_INVOKABLE void subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle);
+
+    void subscribeText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                       QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                       bool doNotVerify, bool leavePacked, Res<int, QString> on_msg,
+                       Res<QString> on_done = _nop_res_status,
+                       Res<QString> on_handle = _nop_res_status);
+
+    Q_INVOKABLE void subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle);
 
     /**
      * @brief Unsubscribe from a resource
@@ -584,6 +598,6 @@ private:
 //Q_DECLARE_METATYPE(BWView*)
 
 
-#endif // BOSSWAVE_H
+#endif // QTLIBBW_BOSSWAVE_H
 
 

@@ -1,5 +1,5 @@
-#ifndef MESSAGE_H
-#define MESSAGE_H
+#ifndef QTLIBBW_MESSAGE_H
+#define QTLIBBW_MESSAGE_H
 
 #include <QSharedPointer>
 #include "agentconnection.h"
@@ -42,4 +42,4 @@ protected:
 PayloadObject* createBasePayloadObject(int ponum, QByteArray &contents);
 PayloadObject* createBasePayloadObject(int ponum, const char* dat, int length);
 
-#endif // MESSAGE_H
+#endif // QTLIBBW_MESSAGE_H

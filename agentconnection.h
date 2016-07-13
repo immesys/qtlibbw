@@ -1,5 +1,5 @@
-#ifndef AGENTCONNECTION_H
-#define AGENTCONNECTION_H
+#ifndef QTLIBBW_AGENTCONNECTION_H
+#define QTLIBBW_AGENTCONNECTION_H
 
 #include <QObject>
 #include <QDebug>
@@ -20,6 +20,8 @@ QT_FORWARD_DECLARE_CLASS(AgentConnection)
 class RoutingObject
 {
 public:
+    RoutingObject()
+        : offset(0), m_ronum(0), m_data(nullptr), m_length(0) {}
     RoutingObject(int ronum, const char *data, int length)
         : offset(0), m_ronum(ronum), m_data(data), m_length(length) {}
     ~RoutingObject()
@@ -106,6 +108,7 @@ private:
     int m_length;
 };
 
+Q_DECLARE_METATYPE(RoutingObject*)
 
 /*
 class Status
@@ -411,4 +414,4 @@ signals:
 
 };
 
-#endif // AGENTCONNECTION_H
+#endif // QTLIBBW_AGENTCONNECTION_H

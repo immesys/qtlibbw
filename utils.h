@@ -1,5 +1,5 @@
-#ifndef UTIS_H
-#define UTIS_H
+#ifndef QTLIBBW_UTILS_H
+#define QTLIBBW_UTILS_H
 
 #include <QJSValue>
 #include <QJSValueList>
@@ -82,4 +82,4 @@ public:
     QJSValue callback;
 };
 #endif
-#endif // UTIS_H
+#endif // QTLIBBW_UTILS_H

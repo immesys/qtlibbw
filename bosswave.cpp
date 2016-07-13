@@ -305,6 +305,44 @@ void BW::publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain,
     publish(uri, primaryAccessChain, autoChain, roz, {po}, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, on_done);
 }
 
+void BW::publishMsgPack(QVariantMap params, QJSValue on_done)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QVariantMap payload = params["Payload"].toMap();
+    int ponum = bwpo::num::MsgPack;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+    bool persist = params["Persist"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("PONum"))
+    {
+        ponum = params["PONum"].toInt();
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->publishMsgPack(uri, primaryAccessChain, autoChain, roz, ponum,
+                         payload, expiry, expiryDelta, elaboratePAC,
+                         doNotVerify, persist, ERes<QString>(on_done));
+}
+
 void BW::publishText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                      int PONum, QString msg, QDateTime expiry, qreal expiryDelta,
                      QString elaboratePAC, bool doNotVerify, bool persist,
@@ -313,6 +351,44 @@ void BW::publishText(QString uri, QString primaryAccessChain, bool autoChain, QL
     QByteArray encoded = msg.toUtf8();
     PayloadObject* po = createBasePayloadObject(PONum, encoded);
     publish(uri, primaryAccessChain, autoChain, roz, {po}, expiry, expiryDelta, elaboratePAC, doNotVerify, persist, on_done);
+}
+
+void BW::publishText(QVariantMap params, QJSValue on_done)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QString payload = params["Payload"].toString();
+    int ponum = bwpo::num::Text;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+    bool persist = params["Persist"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("PONum"))
+    {
+        ponum = params["PONum"].toInt();
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->publishText(uri, primaryAccessChain, autoChain, roz, ponum,
+                      payload, expiry, expiryDelta, elaboratePAC,
+                      doNotVerify, persist, ERes<QString>(on_done));
 }
 
 void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
@@ -378,7 +454,7 @@ void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain, QLis
 
 void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                           QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
-                          bool doNotVerify, bool leavePacked, Res<QVariantMap> on_msg,
+                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
                           Res<QString> on_done, Res<QString> on_handle)
 {
     BW::subscribe(uri, primaryAccessChain, autoChain, roz, expiry,
@@ -388,9 +464,91 @@ void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChai
         foreach(auto po, m->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack))
         {
             QVariant v = MsgPack::unpack(po->contentArray());
-            on_msg(v.toMap());
+            on_msg(po->ponum(), v.toMap());
         }
     }, on_done, on_handle);
+}
+
+void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+    bool persist = params["Persist"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->subscribeMsgPack(uri, primaryAccessChain, autoChain, roz, expiry,
+                           expiryDelta, elaboratePAC, doNotVerify, persist,
+                           ERes<int, QVariantMap>(on_msg),
+                           ERes<QString>(on_done),
+                           ERes<QString>(on_handle));
+}
+
+void BW::subscribeText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                       QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                       bool doNotVerify, bool leavePacked, Res<int, QString> on_msg,
+                       Res<QString> on_done, Res<QString> on_handle)
+{
+    BW::subscribe(uri, primaryAccessChain, autoChain, roz, expiry,
+                  expiryDelta, elaboratePAC, doNotVerify, leavePacked,
+                  [=](PMessage m)
+    {
+        foreach(auto po, m->FilterPOs(bwpo::num::Text, bwpo::mask::Text))
+        {
+            on_msg(po->ponum(), QString(po->contentArray()));
+        }
+    }, on_done, on_handle);
+}
+
+void BW::subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+    bool persist = params["Persist"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->subscribeText(uri, primaryAccessChain, autoChain, roz, expiry,
+                        expiryDelta, elaboratePAC, doNotVerify, persist,
+                        ERes<int, QString>(on_msg),
+                        ERes<QString>(on_done),
+                        ERes<QString>(on_handle));
 }
 
 void BW::unsubscribe(QString handle, Res<QString> on_done)

@@ -1,5 +1,5 @@
-#ifndef BOSSWAVE_PLUGIN_H
-#define BOSSWAVE_PLUGIN_H
+#ifndef QTLIBBW_BOSSWAVE_PLUGIN_H
+#define QTLIBBW_BOSSWAVE_PLUGIN_H
 
 #include <QQmlExtensionPlugin>
 /*
@@ -12,4 +12,4 @@ public:
     void registerTypes(const char *uri);
 };
 */
-#endif // BOSSWAVE_PLUGIN_H
+#endif // QTLIBBW_BOSSWAVE_PLUGIN_H
