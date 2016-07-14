@@ -737,6 +737,7 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
 {
 
     struct queryliststate* state = new struct queryliststate;
+    state->goterror = false;
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
                 doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
     {
