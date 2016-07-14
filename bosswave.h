@@ -328,6 +328,10 @@ public:
                    bool doNotVerify, bool leavePacked,
                    Res<QString, QList<PMessage>> on_done);
 
+    void queryOne(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                  QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                  bool doNotVerify, bool leavePacked, Res<QString, PMessage> on_done);
+
 
     /**
      * @brief list Lists all immediate children of a URI that have persisted messages in their children
@@ -383,7 +387,9 @@ public:
 
     Q_INVOKABLE void delMetadata(QString uri, QString key, Res<QString> on_done);
 
-    void getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_tuple);
+    void getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_done);
+
+    void getMetadataKey(QString uri, QString key, Res<QString, MetadataTuple, QString> on_done);
 
     void publishChainWithAcc(QByteArray blob, int account,
                              Res<QString, QString> on_done);

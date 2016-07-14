@@ -767,6 +767,29 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
     });
 }
 
+void BW::queryOne(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                  QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                  bool doNotVerify, bool leavePacked, Res<QString, PMessage> on_done)
+{
+    bool* fired = new bool;
+    *fired = false;
+
+    this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
+                doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
+    {
+        if (!*fired)
+        {
+            on_done(error, msg);
+            *fired = true;
+        }
+
+        if (final)
+        {
+            delete fired;
+        }
+    });
+}
+
 void BW::list(QString uri, QString primaryAccessChain, bool autoChain,
               QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
               bool doNotVerify, Res<QString, QString, bool> on_done)
@@ -900,12 +923,13 @@ struct metadata_info
     int errorhappened;
 };
 
-void BW::getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_tuple)
+void BW::getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_done)
 {
     QStringList parts = uri.split('/', QString::SkipEmptyParts);
     QString turi("");
 
     struct metadata_info* mi = new struct metadata_info;
+    mi->chans.resize(parts.size());
     mi->numreturned = 0;
     mi->errorhappened = false;
 
@@ -924,7 +948,7 @@ void BW::getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMa
 
             if (error.length() != 0)
             {
-                on_tuple(error, QMap<QString, MetadataTuple>(), QMap<QString, QString>());
+                on_done(error, QMap<QString, MetadataTuple>(), QMap<QString, QString>());
                 mi->errorhappened = true;
             }
             else
@@ -952,7 +976,7 @@ void BW::getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMa
             {
                 if (!mi->errorhappened)
                 {
-                    /* Call on_tuple. */
+                    /* Call on_done. */
                     QMap<QString, QString> rvO;
                     QMap<QString, MetadataTuple> rvM;
 
@@ -962,9 +986,84 @@ void BW::getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMa
                         rvM[res->k] = res->m;
                     }
 
-                    on_tuple("", rvM, rvO);
+                    on_done("", rvM, rvO);
                 }
 
+                delete mi;
+            }
+        });
+
+        li++;
+    }
+}
+
+void BW::getMetadataKey(QString uri, QString key, Res<QString, MetadataTuple, QString> on_done)
+{
+    if (key.length() == 0)
+    {
+        on_done("Key cannot be the empty string", MetadataTuple(), "");
+        return;
+    }
+
+    QStringList parts = uri.split('/', QString::SkipEmptyParts);
+    QString turi("");
+
+    struct metadata_info* mi = new struct metadata_info;
+    mi->chans.resize(parts.size());
+    mi->numreturned = 0;
+    mi->errorhappened = false;
+
+    int li = 0;
+    for (auto i = parts.begin(); i != parts.end(); i++)
+    {
+        turi += *i;
+        turi += "/";
+
+        QString touse(turi);
+        touse += "!meta/";
+        touse += key;
+
+        this->queryOne(touse, "", true, QList<RoutingObject*>(), QDateTime(), -1, "",
+                       false, false, [=](QString error, PMessage message)
+        {
+
+            if (error.length() != 0)
+            {
+                on_done(error, MetadataTuple(), "");
+                mi->errorhappened = true;
+            }
+            else
+            {
+                struct metadata_kv& metadata = mi->chans[li];
+
+                metadata.k = key;
+                metadata.o = turi;
+                QList<PayloadObject*> pos = message->FilterPOs(bwpo::num::SMetadata, bwpo::mask::SMetadata);
+                for (auto k = pos.begin(); k != pos.end(); k++)
+                {
+                    QVariant dictv = MsgPack::unpack((*k)->contentArray());
+                    QVariantMap dict = dictv.toMap();
+                    metadata.m = MetadataTuple(dict);
+                }
+            }
+
+            if (++mi->numreturned == mi->chans.length())
+            {
+                if (!mi->errorhappened)
+                {
+                    /* Call on_done. */
+
+                    for (auto res = mi->chans.rbegin(); res != mi->chans.rend(); res++)
+                    {
+                        if (res->k.length() != 0)
+                        {
+                            on_done("", res->m, res->o);
+                            goto end;
+                        }
+                    }
+                    on_done("", MetadataTuple(), "");
+                }
+        end:
                 delete mi;
             }
         });
