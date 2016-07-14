@@ -56,8 +56,7 @@ Res<QString> BW::_nop_res_status;
 BW::BW(QObject *parent):
     QObject(parent)
 {
-    //_nop_res_status = std::function<void(QString)>([](QString){});
-    _nop_res_status = [](QString){};
+    _nop_res_status = [](QString) {};
     m_agent = NULL;
 }
 
@@ -1235,7 +1234,9 @@ void BW::addressBalance(QString addr, Res<QString, struct balanceinfo> on_done)
         addr = addr.mid(2, -1);
     }
 
-    struct balanceinfo zero = {};
+    struct balanceinfo zero = { QStringLiteral(""),
+                QStringLiteral(""),QStringLiteral(""), 0.0 };
+
     if (addr.length() != 40)
     {
         on_done(QStringLiteral("Address must be 40 hex characters"), zero);
@@ -1291,7 +1292,9 @@ void BW::setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t 
 
     agent()->transact(this, f, [=](PFrame f, bool)
     {
-        struct currbcip rv = {};
+        struct currbcip rv = { Q_INT64_C(0), Q_INT64_C(0), Q_INT64_C(0),
+                             Q_INT64_C(0), Q_UINT64_C(0), Q_INT64_C(0),
+                             Q_INT64_C(0), Q_INT64_C(0) };
         if (f->checkResponse(on_done, rv))
         {
             rv.confirmations = f->getHeaderS("confirmations").toLongLong();
