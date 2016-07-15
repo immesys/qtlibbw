@@ -10,7 +10,7 @@
 #include <functional>
 #include <QJSValue>
 #include <QQmlEngine>
-
+#include <QSslError>
 using std::function;
 
 QT_FORWARD_DECLARE_CLASS(PayloadObject)
@@ -58,11 +58,10 @@ public:
     Entity(int ronum, const char* data, int length);
 
     QByteArray getSigningBlob();
-
-private:
-    QByteArray sig;
     QByteArray vk;
     QByteArray sk;
+private:
+    QByteArray sig;
     int64_t expires;
     int64_t created;
     QList<QByteArray> revokers;
@@ -350,8 +349,8 @@ class AgentConnection : public QObject
 {
     Q_OBJECT
 public:
-    explicit AgentConnection(QString target, quint16 port, QObject *parent = 0)
-        : QObject(parent)
+    explicit AgentConnection(QObject *parent = 0)
+        : QObject(parent), m_ragent(false), m_our_sk(), m_our_vk(), m_ragent_handshaked(false)
     {
         qRegisterMetaType<PFrame>();
         qRegisterMetaType<function<void(PFrame,bool)>>();
@@ -361,8 +360,8 @@ public:
         //All our stuff will happen on this thread
         m_thread = new QThread(this);
         m_thread->start();
-        m_desthost = target;
-        m_destport = port;
+       // m_desthost = target;
+       // m_destport = port;
         moveToThread(m_thread);
 
      /*
@@ -374,13 +373,27 @@ public:
         sock->connectToHost(target, port);*/
     }
 
-    bool waitForConnection()
+//    bool waitForConnection()
+//    {
+//        //TODO apparently this does not work well on windows
+//        return sock->waitForConnected();
+//    }
+    void beginConnection(QString target, qint16 port)
     {
-        //TODO apparently this does not work well on windows
-        return sock->waitForConnected();
+        m_desthost = target;
+        m_destport = port;
+
+        //We might be on another thread.
+        QMetaObject::invokeMethod(this,"initSock");
     }
-    void beginConnection()
+    void beginRagentConnection(QByteArray our_sk, QByteArray our_vk, QString target, qint16 port, QByteArray remote_vk)
     {
+        m_desthost = target;
+        m_destport = port;
+        m_ragent = true;
+        m_remote_vk = remote_vk;
+        m_our_sk = our_sk;
+        m_our_vk = our_vk;
         //We might be on another thread.
         QMetaObject::invokeMethod(this,"initSock");
     }
@@ -403,12 +416,18 @@ private:
     bool have_received_helo;
     QString m_desthost;
     qint16 m_destport;
+    bool m_ragent;
+    QByteArray m_our_sk;
+    QByteArray m_our_vk;
+    QByteArray m_remote_vk;
+    bool m_ragent_handshaked;
 private slots:
     void onConnect();
     void onError();
     void onArrivedData();
     void initSock();
     void doTransact(PFrame f, function<void(PFrame,bool)> cb);
+    void onSslErrors(QList<QSslError> errs);
 signals:
     void agentChanged(bool connected, QString msg);
 

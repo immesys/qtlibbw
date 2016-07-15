@@ -90,16 +90,23 @@ int BW::fromDF(QString df)
     return rv;
 }
 
-void BW::connectAgent(QString host, quint16 port)
+void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
 {
     if (m_agent != NULL)
     {
         m_agent->deleteLater();
         m_agent = NULL;
     }
-    m_agent = new AgentConnection(host, port);
+    m_agent = new AgentConnection();
     connect(m_agent,&AgentConnection::agentChanged,this,&BW::agentChanged);
-    m_agent->beginConnection();
+//#ifdef Q_OS_ANDROID
+    Entity *e = new Entity(bwpo::num::ROEntityWKey, ourentity.data(), ourentity.length());
+    Q_ASSERT(e);
+    QByteArray remvk = QByteArray::fromBase64("gdIHa4kskW9_gAKm4liWnLPN7lQ8N4L2oqCCdK112fA=", QByteArray::Base64UrlEncoding);
+    m_agent->beginRagentConnection(e->sk,e->vk,"ragent.cal-sdb.org",28590,remvk);
+//#else
+//    m_agent->beginConnection("localhost",28589);
+//#endif
 }
 
 AgentConnection* BW::agent()

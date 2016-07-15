@@ -4,7 +4,8 @@
 
 #include <QtEndian>
 #include <QTimer>
-
+#include <QSslSocket>
+#include <crypto.h>
 Entity::Entity(int ronum, const char *data, int length) : RoutingObject(ronum, data, length)
 {
     QByteArray sk;
@@ -171,6 +172,34 @@ void AgentConnection::readKV(QStringList &tokens)
 }
 void AgentConnection::onArrivedData()
 {
+    if (m_ragent && !m_ragent_handshaked)
+    {
+        if (sock->bytesAvailable() < 128)
+            return;
+        char hs[128];
+        qint64 l = sock->read(hs,128);
+        Q_ASSERT(l==128);
+        //This is RVK:SIG:NONCE
+        QSslCertificate peercert = ((QSslSocket*)sock)->peerCertificate();
+        if (peercert.isNull()) {
+            qFatal("no peer certificate");
+        }
+        QByteArray der = peercert.toDer();
+        QByteArray rvk = QByteArray(&hs[0],32);
+        QByteArray rsig = QByteArray(&hs[32],64);
+        bool okay = VerifyBlob(rvk,rsig,der);
+        if (!okay) {
+            qFatal("Remote signature was invalid");
+        }
+        QByteArray nonce = QByteArray(&hs[96],32);
+        QByteArray oursig = QByteArray(64,0);
+        SignBlob(m_our_sk, m_our_vk,&nonce,&oursig);
+        int done = sock->write(m_our_vk);
+        Q_ASSERT(done == 32);
+        done = sock->write(oursig);
+        Q_ASSERT(done == 64);
+        m_ragent_handshaked=true;
+    }
     if (curFrame.isNull())
     {
         //New frame, read the header
@@ -222,14 +251,47 @@ void AgentConnection::onArrivedData()
 
 void AgentConnection::initSock()
 {
-    sock = new QTcpSocket(this);
-    connect(sock, &QTcpSocket::connected, this, &AgentConnection::onConnect);
-    connect(sock,static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
-            this, &AgentConnection::onError);
-    connect(sock, &QTcpSocket::readyRead, this, &AgentConnection::onArrivedData);
-    sock->connectToHost(m_desthost, m_destport);
+    if (!m_ragent)
+    {
+        sock = new QTcpSocket(this);
+        connect(sock, &QTcpSocket::connected, this, &AgentConnection::onConnect);
+        connect(sock,static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
+                this, &AgentConnection::onError);
+        connect(sock, &QTcpSocket::readyRead, this, &AgentConnection::onArrivedData);
+        sock->connectToHost(m_desthost, m_destport);
+    }
+    else
+    {
+        QSslSocket *secsock = new QSslSocket(this);
+        sock = secsock;
+        connect(sock, &QTcpSocket::connected, this, &AgentConnection::onConnect);
+        connect(sock,static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
+                this, &AgentConnection::onError);
+        connect(secsock, SIGNAL(sslErrors(QList<QSslError>)),
+                        this, SLOT(onSslErrors(QList<QSslError>)));
+        connect(sock, &QTcpSocket::readyRead, this, &AgentConnection::onArrivedData);
+        secsock->connectToHostEncrypted(m_desthost, m_destport);
+    }
 }
 
+void AgentConnection::onSslErrors(QList<QSslError> errs)
+{
+    bool okay = true;
+    foreach (auto err, errs)
+    {
+        if (err.error() == QSslError::HostNameMismatch ||
+            err.error() == QSslError::SelfSignedCertificate)
+        {
+            continue;
+        }
+        okay = false;
+    }
+    if (okay) {
+        ((QSslSocket*)sock)->ignoreSslErrors(errs);
+    } else {
+        qFatal("unexpected ssl errors");
+    }
+}
 
 void AgentConnection::onArrivedFrame(PFrame f)
 {

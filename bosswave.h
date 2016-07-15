@@ -120,8 +120,9 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void connectAgent(QString host, quint16 port);
+    void connectAgent(QByteArray &ourentity);
 
+   // void connectAgentWithFallback();
     /**
      * @brief createEntity Create a new entity
      * @param expiry The time at which the entity expires. Ignored if invalid (year == 0)
