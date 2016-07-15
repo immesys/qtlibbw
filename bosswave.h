@@ -132,9 +132,11 @@ public:
      * @param omitCreationDate If true, the creation date is omitted
      * @param on_done Callback that takes as arguments (1) the error message (empty string if none), (2) the VK of the new entity, and (3) binary representation
      */
-    Q_INVOKABLE void createEntity(QDateTime expiry, qreal expiryDelta, QString contact,
-                                  QString comment, QList<QString> revokers, bool omitCreationDate,
-                                  Res<QString, QString, QByteArray> on_done);
+    void createEntity(QDateTime expiry, qreal expiryDelta, QString contact,
+                      QString comment, QList<QString> revokers, bool omitCreationDate,
+                      Res<QString, QString, QByteArray> on_done);
+
+    Q_INVOKABLE void createEntity(QVariantMap params, QJSValue on_done);
 
     /**
      * @brief createDOT Create a Declaration of Trust (DOT)
@@ -152,14 +154,18 @@ public:
      * @param appPermissions Used for permission DOTs
      * @param on_done Callback that takes are arguments (1) the error message (empty string if none), (2) the hash of the new dot, and (3) binary representation
      */
-    Q_INVOKABLE void createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime expiry,
-                               qreal expiryDelta, QString contact, QString comment,
-                               QList<QString> revokers, bool omitCreationDate, QString uri,
-                               QString accessPermissions, QVariantMap appPermissions,
-                               Res<QString, QString, QByteArray> on_done);
+    void createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime expiry,
+                   qreal expiryDelta, QString contact, QString comment,
+                   QList<QString> revokers, bool omitCreationDate, QString uri,
+                   QString accessPermissions, QVariantMap appPermissions,
+                   Res<QString, QString, QByteArray> on_done);
+
+    Q_INVOKABLE void createDOT(QVariantMap params, QJSValue on_done);
 
     void createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate,
                         Res<QString, QString, RoutingObject*> on_done);
+
+    Q_INVOKABLE void createDOTChain(QVariantMap params, QJSValue on_done);
 
     /**
      * @brief publish a bosswave message
@@ -174,7 +180,6 @@ public:
                  QList<RoutingObject*> roz, QList<PayloadObject*> poz,
                  QDateTime expiry, qreal expiryDelta, QString elaboratePAC, bool doNotVerify,
                  bool persist, Res<QString> on_done = _nop_res_status);
-
 
     /**
      * @brief Publish a MsgPack object to the given URI
@@ -266,7 +271,9 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void setEntityFile(QString filename, Res<QString, QString> on_done = _nop_res_status);
+    void setEntityFile(QString filename, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void setEntityFile(QString filename, QJSValue on_done);
 
     /**
      * @brief Set the entity
@@ -279,7 +286,9 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void setEntity(QByteArray keyfile, Res<QString, QString> on_done = _nop_res_status);
+    void setEntity(QByteArray keyfile, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void setEntity(QByteArray keyfile, QJSValue on_done);
 
     /**
      * @brief Set the entity by reading the file denoted by $BW2_DEFAULT_ENTITY
@@ -288,7 +297,9 @@ public:
      * @ingroup cpp
      * @since 1.0
      */
-    void setEntityFromEnviron(Res<QString, QString> on_done = _nop_res_status);
+    void setEntityFromEnviron(Res<QString, QString> on_done);
+
+    Q_INVOKABLE void setEntityFromEnviron(QJSValue on_done);
 
     /**
      * @brief buildChain Builds a DOT chain.
@@ -297,8 +308,10 @@ public:
      * @param to The entity to which the chain is built
      * @param on_done Called for each chain that is built. Arguments are (1) error message (or empty string if none), (2) DOT chain object (or empty dict if none), and (3) boolean which is true if this is the final DOT chain
      */
-    Q_INVOKABLE void buildChain(QString uri, QString permissions, QString to,
-                                Res<QString, SimpleChain*, bool> on_done);
+    void buildChain(QString uri, QString permissions, QString to,
+                    Res<QString, SimpleChain*, bool> on_done);
+
+    Q_INVOKABLE void buildChain(QVariantMap params, QJSValue on_done);
 
     /**
      * @brief buildAnyChain Convenience function that calls buildChain and only gives the first result, if any.
@@ -307,8 +320,10 @@ public:
      * @param to The entity to which the chain is built
      * @param on_done Same as BuildChain, but only has the first two arguments.
      */
-    Q_INVOKABLE void buildAnyChain(QString uri, QString permissions, QString to,
-                                   Res<QString, SimpleChain*> on_done);
+    void buildAnyChain(QString uri, QString permissions, QString to,
+                       Res<QString, SimpleChain*> on_done);
+
+    Q_INVOKABLE void buildAnyChain(QVariantMap params, QJSValue on_done);
 
     /**
      * @brief Query the given URI pattern and return all messages that match
@@ -322,6 +337,20 @@ public:
                QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                bool doNotVerify, bool leavePacked,
                Res<QString, PMessage, bool> on_result);
+
+    void queryMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                      QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                      bool doNotVerify, bool leavePacked,
+                      Res<QString, int, QVariantMap, bool> on_result);
+
+    Q_INVOKABLE void queryMsgPack(QVariantMap params, QJSValue on_result);
+
+    void queryText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                   bool doNotVerify, bool leavePacked,
+                   Res<QString, int, QString, bool> on_result);
+
+    Q_INVOKABLE void queryText(QVariantMap params, QJSValue on_result);
 
     void queryList(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
@@ -344,9 +373,11 @@ public:
      * @param doNotVerify
      * @param on_done
      */
-    Q_INVOKABLE void list(QString uri, QString primaryAccessChain, bool autoChain,
-                          QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
-                          bool doNotVerify, Res<QString, QString, bool> on_done);
+    void list(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+              QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+              bool doNotVerify, Res<QString, QString, bool> on_result);
+
+    Q_INVOKABLE void list(QVariantMap params, QJSValue on_result);
 
     /**
      * @brief publishDOTWithAcc Publish a DOT, using an account to bankroll the operation
@@ -354,15 +385,18 @@ public:
      * @param account The account number to use
      * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the hash
      */
-    Q_INVOKABLE void publishDOTWithAcc(QByteArray, int account,
-                                       Res<QString, QString> on_done);
+    void publishDOTWithAcc(QByteArray blob, int account, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void publishDOTWithAcc(QByteArray blob, int account, QJSValue on_done);
 
     /**
      * @brief publishDOT Like publishDOTWithAcc, except that you don't have to explicitly specify the account
      * @param blob
      * @param on_done
      */
-    Q_INVOKABLE void publishDOT(QByteArray blob, Res<QString, QString> on_done);
+    void publishDOT(QByteArray blob, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void publishDOT(QByteArray blob, QJSValue on_done);
 
 
     /**
@@ -371,10 +405,13 @@ public:
      * @param account The account number to use
      * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the VK
      */
-    Q_INVOKABLE void publishEntityWithAcc(QByteArray blob, int account,
-                                          Res<QString, QString> on_done);
+    void publishEntityWithAcc(QByteArray blob, int account, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void publishEntityWithAcc(QByteArray blob, int account, QJSValue on_done);
 
     void publishEntity(QByteArray blob, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void publishEntity(QByteArray blob, QJSValue on_done);
 
     /**
      * @brief setMetadata Sets metadata published at the URI
@@ -383,32 +420,57 @@ public:
      * @param val
      * @param on_done Callback invoked with a single argument: an error message, or the empty string if there was no error
      */
-    Q_INVOKABLE void setMetadata(QString uri, QString key, QString val, Res<QString> on_done);
+    void setMetadata(QString uri, QString key, QString val, Res<QString> on_done);
 
-    Q_INVOKABLE void delMetadata(QString uri, QString key, Res<QString> on_done);
+    Q_INVOKABLE void setMetadata(QString uri, QString key, QString val, QJSValue on_done);
+
+    void delMetadata(QString uri, QString key, Res<QString> on_done);
+
+    Q_INVOKABLE void delMetadata(QString uri, QString key, QJSValue on_done);
 
     void getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_done);
 
+    Q_INVOKABLE void getMetadata(QString uri, QJSValue on_done);
+
     void getMetadataKey(QString uri, QString key, Res<QString, MetadataTuple, QString> on_done);
 
-    void publishChainWithAcc(QByteArray blob, int account,
-                             Res<QString, QString> on_done);
+    Q_INVOKABLE void getMetadataKey(QString uri, QString key, QJSValue on_done);
+
+    void publishChainWithAcc(QByteArray blob, int account, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void publishChainWithAcc(QByteArray blob, int account, QJSValue on_done);
 
     void publishChain(QByteArray blob, Res<QString, QString> on_done);
 
+    Q_INVOKABLE void publishChain(QByteArray blob, QJSValue on_done);
+
     void unresolveAlias(QByteArray blob, Res<QString, QString> on_done);
+
+    Q_INVOKABLE void unresolveAlias(QByteArray blob, QJSValue on_done);
 
     void resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done);
 
+    Q_INVOKABLE void resolveLongAlias(QString al, QJSValue on_done);
+
     void resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done);
+
+    Q_INVOKABLE void resolveShortAlias(QString al, QJSValue on_done);
 
     void resolveEmbeddedAlias(QString al, Res<QString, QString> on_done);
 
+    Q_INVOKABLE void resolveEmbeddedAlias(QString al, QJSValue on_done);
+
     void resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done);
+
+    Q_INVOKABLE void resolveRegistry(QString key, QJSValue on_done);
 
     void entityBalances(Res<QString, QVector<struct balanceinfo>> on_done);
 
+    Q_INVOKABLE void entityBalances(QJSValue on_done);
+
     void addressBalance(QString addr, Res<QString, struct balanceinfo> on_done);
+
+    Q_INVOKABLE void addressBalance(QString addr, QJSValue on_done);
 
     void getBCInteractionParams(Res<QString, struct currbcip> on_done);
 
@@ -492,20 +554,35 @@ private:
     friend BWView;
 };
 
-class BalanceInfo : public QObject
-{
+class MetadataTupleJS : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString addr MEMBER addr)
-    Q_PROPERTY(QString human MEMBER human)
-    Q_PROPERTY(QString decimal MEMBER decimal)
-    Q_PROPERTY(qreal value MEMBER value)
+    Q_PROPERTY(QString value MEMBER value)
+    Q_PROPERTY(QDateTime time MEMBER time)
 
 public:
+    MetadataTupleJS(QObject* parent = nullptr) : QObject(parent) {}
 
-    QString addr;
-    QString human;
-    QString decimal;
-    qreal value;
+    MetadataTupleJS(QString val, int64_t ts, QObject* parent = nullptr)
+        : QObject(parent), value(val)
+    {
+        int64_t msecs = ts / 1000000;
+        int64_t nsecs = ts % 1000000;
+        if (nsecs < 0)
+        {
+            msecs -= 1;
+            nsecs += 1000000;
+        }
+
+        /* Round to the nearest millisecond. */
+        if (nsecs >= 500000)
+        {
+            msecs += 1;
+        }
+        time = QDateTime::fromMSecsSinceEpoch(msecs);
+    }
+
+    QString value;
+    QDateTime time;
 };
 
 class MetadataTuple
@@ -553,6 +630,26 @@ struct currbcip
 
 struct balanceinfo
 {
+    QString addr;
+    QString human;
+    QString decimal;
+    qreal value;
+};
+
+class BalanceInfo : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString addr MEMBER addr)
+    Q_PROPERTY(QString human MEMBER human)
+    Q_PROPERTY(QString decimal MEMBER decimal)
+    Q_PROPERTY(qreal value MEMBER value)
+
+public:
+    BalanceInfo(QObject* parent = nullptr) : QObject(parent), value(0.0) {}
+    BalanceInfo(const struct balanceinfo& bi, QObject* parent = nullptr)
+        : QObject(parent), addr(bi.addr), human(bi.human), decimal(bi.decimal),
+          value(bi.value) {}
+
     QString addr;
     QString human;
     QString decimal;
