@@ -19,7 +19,7 @@ Entity::Entity(int ronum, const char *data, int length) : RoutingObject(ronum, d
     Q_ASSERT(ronum == bwpo::num::ROEntity);
 
     const char* content = this->content();
-    this->vk = QByteArray::fromRawData(data, 32);
+    this->vk = QByteArray::fromRawData(content, 32);
 
     int idx = 32;
     int ln;
@@ -172,7 +172,7 @@ void AgentConnection::readKV(QStringList &tokens)
 }
 void AgentConnection::onArrivedData()
 {
-    if (m_ragent && !m_ragent_handshaked)
+    if (m_ragent && m_ragent_handshake==0)
     {
         if (sock->bytesAvailable() < 128)
             return;
@@ -193,12 +193,26 @@ void AgentConnection::onArrivedData()
         }
         QByteArray nonce = QByteArray(&hs[96],32);
         QByteArray oursig = QByteArray(64,0);
+        qDebug() <<"our sk" << m_our_sk.toBase64(QByteArray::Base64UrlEncoding);
+        qDebug() <<"our vk" << m_our_vk.toBase64(QByteArray::Base64UrlEncoding);
         SignBlob(m_our_sk, m_our_vk,&nonce,&oursig);
         int done = sock->write(m_our_vk);
         Q_ASSERT(done == 32);
         done = sock->write(oursig);
         Q_ASSERT(done == 64);
-        m_ragent_handshaked=true;
+        m_ragent_handshake=1;
+    }
+    if (m_ragent && m_ragent_handshake==1)
+    {
+        if (sock->bytesAvailable()<4)
+            return;
+        char st [4];
+        qint64 l = sock->read(st,4);
+        Q_ASSERT(l==4);
+        if (st[0] != 'O') {
+            qFatal("remote dislikes us");
+        }
+        m_ragent_handshake=2;
     }
     if (curFrame.isNull())
     {

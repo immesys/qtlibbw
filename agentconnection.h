@@ -350,7 +350,7 @@ class AgentConnection : public QObject
     Q_OBJECT
 public:
     explicit AgentConnection(QObject *parent = 0)
-        : QObject(parent), m_ragent(false), m_our_sk(), m_our_vk(), m_ragent_handshaked(false)
+        : QObject(parent), m_ragent(false), m_our_sk(), m_our_vk(), m_ragent_handshake(0)
     {
         qRegisterMetaType<PFrame>();
         qRegisterMetaType<function<void(PFrame,bool)>>();
@@ -420,7 +420,7 @@ private:
     QByteArray m_our_sk;
     QByteArray m_our_vk;
     QByteArray m_remote_vk;
-    bool m_ragent_handshaked;
+    int m_ragent_handshake;
 private slots:
     void onConnect();
     void onError();
