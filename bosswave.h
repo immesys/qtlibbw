@@ -336,19 +336,19 @@ public:
     void query(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                bool doNotVerify, bool leavePacked,
-               Res<QString, PMessage, bool> on_result);
+               Res<QString, PMessage, bool, bool> on_result);
 
     void queryMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                       QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                       bool doNotVerify, bool leavePacked,
-                      Res<QString, int, QVariantMap, bool> on_result);
+                      Res<QString, int, QVariantMap, bool, bool> on_result);
 
     Q_INVOKABLE void queryMsgPack(QVariantMap params, QJSValue on_result);
 
     void queryText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                    bool doNotVerify, bool leavePacked,
-                   Res<QString, int, QString, bool> on_result);
+                   Res<QString, int, QString, bool, bool> on_result);
 
     Q_INVOKABLE void queryText(QVariantMap params, QJSValue on_result);
 
