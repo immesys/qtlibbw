@@ -753,7 +753,7 @@ void BW::buildAnyChain(QVariantMap params, QJSValue on_done)
 void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                bool doNotVerify, bool leavePacked,
-               Res<QString, PMessage, bool, bool> on_result)
+               Res<QString, PMessage, bool> on_result)
 {
     auto f = agent()->newFrame(Frame::QUERY);
     if (autoChain)
@@ -792,7 +792,7 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
     {
         if (f->isType(Frame::RESPONSE))
         {
-            if (!f->checkResponse(on_result, PMessage(), false, final))
+            if (!f->checkResponse(on_result, PMessage(), final))
             {
                 return;
             }
@@ -802,11 +802,11 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
         f->getHeaderS("from", &ok);
         if (ok)
         {
-            on_result("", Message::fromFrame(f), true, final);
+            on_result("", Message::fromFrame(f), final);
         }
         else if (final)
         {
-            on_result("", PMessage(), false, true);
+            on_result("", PMessage(), true);
         }
     });
 }
@@ -817,8 +817,9 @@ void BW::queryMsgPack(QString uri, QString primaryAccessChain, bool autoChain, Q
                       Res<QString, int, QVariantMap, bool, bool> on_result)
 {
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
-                elaboratePAC, doNotVerify, leavePacked, [=](QString error, PMessage message, bool hascontent, bool final)
+                elaboratePAC, doNotVerify, leavePacked, [=](QString error, PMessage message, bool final)
     {
+        bool hascontent = (message != nullptr);
         if (error.length() == 0 && hascontent)
         {
             auto pos = message->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack);
@@ -873,8 +874,9 @@ void BW::queryText(QString uri, QString primaryAccessChain, bool autoChain, QLis
                    Res<QString, int, QString, bool, bool> on_result)
 {
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
-                elaboratePAC, doNotVerify, leavePacked, [=](QString error, PMessage message, bool hascontent, bool final)
+                elaboratePAC, doNotVerify, leavePacked, [=](QString error, PMessage message, bool final)
     {
+        bool hascontent = (message != nullptr);
         if (error.length() == 0 && hascontent)
         {
             auto pos = message->FilterPOs(bwpo::num::Text, bwpo::mask::Text);
@@ -937,7 +939,7 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
     struct queryliststate* state = new struct queryliststate;
     state->goterror = false;
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
-                doNotVerify, leavePacked, [=](QString error, PMessage msg, bool hascontent, bool final)
+                doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
     {
         if (state->goterror)
         {
@@ -951,7 +953,7 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
             goto end;
         }
 
-        if (hascontent)
+        if (msg != nullptr)
         {
             state->messages.append(msg);
         }
@@ -976,9 +978,9 @@ void BW::queryOne(QString uri, QString primaryAccessChain, bool autoChain, QList
     *fired = false;
 
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
-                doNotVerify, leavePacked, [=](QString error, PMessage msg, bool hascontent, bool final)
+                doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
     {
-        if (!*fired && hascontent)
+        if (!*fired && msg != nullptr)
         {
             on_done(error, msg);
             *fired = true;

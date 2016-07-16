@@ -5,6 +5,7 @@
 #include <QtEndian>
 #include <QTimer>
 
+
 Entity::Entity(int ronum, const char *data, int length, QObject* parent)
     : RoutingObject(ronum, data, length, parent)
 {

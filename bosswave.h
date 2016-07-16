@@ -336,7 +336,7 @@ public:
     void query(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                bool doNotVerify, bool leavePacked,
-               Res<QString, PMessage, bool, bool> on_result);
+               Res<QString, PMessage, bool> on_result);
 
     void queryMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                       QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
