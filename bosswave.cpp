@@ -165,6 +165,23 @@ void BW::createEntity(QDateTime expiry, qreal expiryDelta, QString contact,
     });
 }
 
+void BW::createEntity(QVariantMap params, QJSValue on_done)
+{
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString contact = params["Contact"].toString();
+    QString comment = params["Comment"].toString();
+    QStringList revokers = params["Revokers"].toStringList();
+    bool omitCreationDate = params["OmitCreationDate"].toBool();
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->createEntity(expiry, expiryDelta, contact, comment, revokers, omitCreationDate, ERes<QString, QString, QByteArray>(on_done));
+}
+
 void BW::createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime expiry,
                    qreal expiryDelta, QString contact, QString comment,
                    QList<QString> revokers, bool omitCreationDate, QString uri,
@@ -222,6 +239,31 @@ void BW::createDOT(bool isPermission, QString to, unsigned int ttl, QDateTime ex
     });
 }
 
+void BW::createDOT(QVariantMap params, QJSValue on_done)
+{
+    bool isPermission = params["IsPermission"].toBool();
+    QString to = params["To"].toString();
+    unsigned int ttl = params["TTL"].toUInt();
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString contact = params["Contact"].toString();
+    QString comment = params["Comment"].toString();
+    QStringList revokers = params["Revokers"].toStringList();
+    bool omitCreationDate = params["OmitCreationDate"].toBool();
+    QString uri = params["URI"].toString();
+    QString accessPermissions = params["AccessPermissions"].toString();
+    QVariantMap appPermissions = params["AppPermissions"].toMap();
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->createDOT(isPermission, to, ttl, expiry, expiryDelta, contact, comment,
+                    revokers, omitCreationDate, uri, accessPermissions, appPermissions,
+                    ERes<QString, QString, QByteArray>(on_done));
+}
+
 void BW::createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate,
                         Res<QString, QString, RoutingObject*> on_done)
 {
@@ -249,6 +291,16 @@ void BW::createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate
             on_done("", hash, ro);
         }
     });
+}
+
+void BW::createDOTChain(QVariantMap params, QJSValue on_done)
+{
+    QStringList dots = params["DOTs"].toStringList();
+    bool isPermission = params["IsPermission"].toBool();
+    bool unElaborate = params["UnElaborate"].toBool();
+
+    this->createDOTChain(dots, isPermission, unElaborate,
+                         ERes<QString, QString, RoutingObject*>(on_done));
 }
 
 void BW::publish(QString uri, QString primaryAccessChain, bool autoChain,
@@ -593,15 +645,9 @@ void BW::setEntityFile(QString filename, Res<QString, QString> on_done)
     setEntity(contents, on_done);
 }
 
-
-void BW::setEntityFromEnviron(Res<QString, QString> on_done)
+void BW::setEntityFile(QString filename, QJSValue on_done)
 {
-    QByteArray a = qgetenv("BW2_DEFAULT_ENTITY");
-    if (a.isEmpty()) {
-        on_done("BW2_DEFAULT_ENTITY not set", QStringLiteral(""));
-        return;
-    }
-    setEntityFile(a.data(), on_done);
+    this->setEntityFile(filename, ERes<QString, QString>(on_done));
 }
 
 void BW::setEntity(QByteArray keyfile, Res<QString, QString> on_done)
@@ -617,6 +663,26 @@ void BW::setEntity(QByteArray keyfile, Res<QString, QString> on_done)
             on_done("", this->m_vk);
         }
     });
+}
+
+void BW::setEntity(QByteArray keyfile, QJSValue on_done)
+{
+    this->setEntity(keyfile, ERes<QString, QString>(on_done));
+}
+
+void BW::setEntityFromEnviron(Res<QString, QString> on_done)
+{
+    QByteArray a = qgetenv("BW2_DEFAULT_ENTITY");
+    if (a.isEmpty()) {
+        on_done("BW2_DEFAULT_ENTITY not set", QStringLiteral(""));
+        return;
+    }
+    setEntityFile(a.data(), on_done);
+}
+
+void BW::setEntityFromEnviron(QJSValue on_done)
+{
+    this->setEntityFromEnviron(ERes<QString, QString>(on_done));
 }
 
 void BW::buildChain(QString uri, QString permissions, QString to,
@@ -656,6 +722,15 @@ void BW::buildChain(QString uri, QString permissions, QString to,
     });
 }
 
+void BW::buildChain(QVariantMap params, QJSValue on_done)
+{
+    QString uri = params["URI"].toString();
+    QString permissions = params["Permissions"].toString();
+    QString to = params["To"].toString();
+
+    this->buildChain(uri, permissions, to, ERes<QString, SimpleChain*, bool>(on_done));
+}
+
 void BW::buildAnyChain(QString uri, QString permissions, QString to,
                        Res<QString, SimpleChain*> on_done)
 {
@@ -675,6 +750,15 @@ void BW::buildAnyChain(QString uri, QString permissions, QString to,
             delete calledCB;
         }
     });
+}
+
+void BW::buildAnyChain(QVariantMap params, QJSValue on_done)
+{
+    QString uri = params["URI"].toString();
+    QString permissions = params["Permissions"].toString();
+    QString to = params["To"].toString();
+
+    this->buildAnyChain(uri, permissions, to, ERes<QString, SimpleChain*>(on_done));
 }
 
 void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
@@ -733,7 +817,124 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
         {
             on_result("", Message::fromFrame(f), final);
         }
+        else if (final)
+        {
+            on_result("", PMessage(), true);
+        }
     });
+}
+
+void BW::queryMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                      QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                      bool doNotVerify, bool leavePacked,
+                      Res<QString, int, QVariantMap, bool, bool> on_result)
+{
+    this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
+                elaboratePAC, doNotVerify, leavePacked, [=](QString error, PMessage message, bool final)
+    {
+        bool hascontent = (message != nullptr);
+        if (error.length() == 0 && hascontent)
+        {
+            auto pos = message->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack);
+            for (auto i = pos.begin(); i != pos.end(); i++)
+            {
+                PayloadObject* po = *i;
+                QVariant v = MsgPack::unpack(po->contentArray());
+                on_result("", po->ponum(), v.toMap(), hascontent, final && i == pos.end());
+            }
+        }
+        else if (error.length() != 0 || final)
+        {
+            on_result(error, 0, QVariantMap(), hascontent, final);
+        }
+    });
+}
+
+void BW::queryMsgPack(QVariantMap params, QJSValue on_result)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+    bool leavePacked = params["LeavePacked"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->queryMsgPack(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
+                       elaboratePAC, doNotVerify, leavePacked,
+                       ERes<QString, int, QVariantMap, bool, bool>(on_result));
+}
+
+void BW::queryText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
+                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
+                   bool doNotVerify, bool leavePacked,
+                   Res<QString, int, QString, bool, bool> on_result)
+{
+    this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
+                elaboratePAC, doNotVerify, leavePacked, [=](QString error, PMessage message, bool final)
+    {
+        bool hascontent = (message != nullptr);
+        if (error.length() == 0 && hascontent)
+        {
+            auto pos = message->FilterPOs(bwpo::num::Text, bwpo::mask::Text);
+            for (auto i = pos.begin(); i != pos.end(); i++)
+            {
+                PayloadObject* po = *i;
+                on_result("", po->ponum(), QString(po->contentArray()), hascontent, final && i == pos.end());
+            }
+        }
+        else if (error.length() != 0 || final)
+        {
+            on_result(error, 0, QString(), hascontent, final);
+        }
+    });
+}
+
+void BW::queryText(QVariantMap params, QJSValue on_result)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+    bool leavePacked = params["LeavePacked"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->queryText(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
+                    elaboratePAC, doNotVerify, leavePacked,
+                    ERes<QString, int, QString, bool, bool>(on_result));
 }
 
 struct queryliststate
@@ -766,7 +967,10 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
             goto end;
         }
 
-        state->messages.append(msg);
+        if (msg != nullptr)
+        {
+            state->messages.append(msg);
+        }
 
     end:
         qDebug() << "final" << final;
@@ -791,7 +995,7 @@ void BW::queryOne(QString uri, QString primaryAccessChain, bool autoChain, QList
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
                 doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
     {
-        if (!*fired)
+        if (!*fired && msg != nullptr)
         {
             on_done(error, msg);
             *fired = true;
@@ -799,14 +1003,18 @@ void BW::queryOne(QString uri, QString primaryAccessChain, bool autoChain, QList
 
         if (final)
         {
+            if (!*fired)
+            {
+                on_done("", PMessage());
+            }
             delete fired;
         }
     });
 }
 
-void BW::list(QString uri, QString primaryAccessChain, bool autoChain,
+void BW::list(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
               QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
-              bool doNotVerify, Res<QString, QString, bool> on_done)
+              bool doNotVerify, Res<QString, QString, bool> on_result)
 {
     auto f = agent()->newFrame(Frame::MAKE_ENTITY);
     if (autoChain)
@@ -830,6 +1038,10 @@ void BW::list(QString uri, QString primaryAccessChain, bool autoChain,
     {
         f->addHeader("primary_access_chain", primaryAccessChain);
     }
+    for (auto i = roz.begin(); i != roz.end(); i++)
+    {
+        f->addRoutingObject(*i);
+    }
     if (elaboratePAC == QStringLiteral(""))
     {
         elaboratePAC = elaboratePartial;
@@ -839,20 +1051,48 @@ void BW::list(QString uri, QString primaryAccessChain, bool autoChain,
 
     agent()->transact(this, f, [=](PFrame f, bool final)
     {
-        if (f->checkResponse(on_done, QStringLiteral(""), true))
+        if (f->checkResponse(on_result, QStringLiteral(""), true))
         {
             bool ok;
             QString child = f->getHeaderS("child", &ok);
             if (ok || final)
             {
-                on_done("", child, final);
+                on_result("", child, final);
             }
         }
     });
 }
 
-void BW::publishDOTWithAcc(QByteArray blob, int account,
-                           Res<QString, QString> on_done)
+void BW::list(QVariantMap params, QJSValue on_result)
+{
+    QString uri = params["URI"].toString();
+    QString primaryAccessChain = params["PrimaryAccessChain"].toString();
+    bool autoChain = params["AutoChain"].toBool();
+    QList<RoutingObject*> roz;
+    QDateTime expiry = params["Expiry"].toDateTime();
+    qreal expiryDelta = -1.0;
+    QString elaboratePAC = params["ElaboratePAC"].toString();
+    bool doNotVerify = params["DoNotVerify"].toBool();
+
+    if (params.contains("RoutingObjects"))
+    {
+        QVariantList ros = params["RoutingObjects"].toList();
+        for (auto i = ros.begin(); i != ros.end(); i++)
+        {
+            roz.append(i->value<RoutingObject*>());
+        }
+    }
+
+    if (params.contains("ExpiryDelta"))
+    {
+        expiryDelta = params["ExpiryDelta"].toReal();
+    }
+
+    this->list(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta,
+               elaboratePAC, doNotVerify, ERes<QString, QString, bool>(on_result));
+}
+
+void BW::publishDOTWithAcc(QByteArray blob, int account, Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::PUT_DOT);
     PayloadObject* po = PayloadObject::load(bwpo::num::ROAccessDOT, blob.constData(), blob.size());
@@ -869,9 +1109,19 @@ void BW::publishDOTWithAcc(QByteArray blob, int account,
     });
 }
 
+void BW::publishDOTWithAcc(QByteArray blob, int account, QJSValue on_done)
+{
+    this->publishDOTWithAcc(blob, account, ERes<QString, QString>(on_done));
+}
+
 void BW::publishDOT(QByteArray blob, Res<QString, QString> on_done)
 {
     this->publishDOTWithAcc(blob, 0, on_done);
+}
+
+void BW::publishDOT(QByteArray blob, QJSValue on_done)
+{
+    this->publishDOT(blob, ERes<QString, QString>(on_done));
 }
 
 void BW::publishEntityWithAcc(QByteArray blob, int account,
@@ -892,9 +1142,19 @@ void BW::publishEntityWithAcc(QByteArray blob, int account,
     });
 }
 
+void BW::publishEntityWithAcc(QByteArray blob, int account, QJSValue on_done)
+{
+    this->publishEntityWithAcc(blob, account, ERes<QString, QString>(on_done));
+}
+
 void BW::publishEntity(QByteArray blob, Res<QString, QString> on_done)
 {
     this->publishEntityWithAcc(blob, 0, on_done);
+}
+
+void BW::publishEntity(QByteArray blob, QJSValue on_done)
+{
+    this->publishEntity(blob, ERes<QString, QString>(on_done));
 }
 
 void BW::setMetadata(QString uri, QString key, QString val, Res<QString> on_done)
@@ -911,6 +1171,11 @@ void BW::setMetadata(QString uri, QString key, QString val, Res<QString> on_done
     this->publishMsgPack(uri, "", true, QList<RoutingObject*>(), bwpo::num::SMetadata, metadata.toVariantMap(), QDateTime(), -1, "", false, true, on_done);
 }
 
+void BW::setMetadata(QString uri, QString key, QString val, QJSValue on_done)
+{
+    this->setMetadata(uri, key, val, ERes<QString>(on_done));
+}
+
 void BW::delMetadata(QString uri, QString key, Res<QString> on_done)
 {
     if (uri.endsWith(QStringLiteral("/")))
@@ -921,6 +1186,11 @@ void BW::delMetadata(QString uri, QString key, Res<QString> on_done)
     uri += key;
 
     this->publish(uri, "", true, QList<RoutingObject*>(), QList<PayloadObject*>(), QDateTime(), -1, "", false, true, on_done);
+}
+
+void BW::delMetadata(QString uri, QString key, QJSValue on_done)
+{
+    this->delMetadata(uri, key, ERes<QString>(on_done));
 }
 
 struct metadata_kv
@@ -1011,6 +1281,31 @@ void BW::getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMa
     }
 }
 
+void BW::getMetadata(QString uri, QJSValue on_done)
+{
+    this->getMetadata(uri, [=](QString error, QMap<QString, MetadataTuple> data, QMap<QString, QString> from)
+    {
+        QVariantMap d;
+        QVariantMap::const_iterator dend = d.cend();
+        for (auto i = data.cbegin(); i != data.cend(); i++)
+        {
+            const MetadataTuple& mt = i.value();
+            MetadataTupleJS* tuple = new MetadataTupleJS(mt.value, mt.timestamp);
+            d.insert(dend, i.key(), QVariant::fromValue(tuple));
+        }
+
+        QVariantMap f;
+        QVariantMap::const_iterator fend = f.cend();
+        for (auto j = from.begin(); j != from.cend(); j++)
+        {
+            f.insert(fend, j.key(), QVariant(j.value()));
+        }
+
+        auto cb = ERes<QString, QVariantMap, QVariantMap>(on_done);
+        cb(error, d, f);
+    });
+}
+
 void BW::getMetadataKey(QString uri, QString key, Res<QString, MetadataTuple, QString> on_done)
 {
     if (key.length() == 0)
@@ -1086,6 +1381,17 @@ void BW::getMetadataKey(QString uri, QString key, Res<QString, MetadataTuple, QS
     }
 }
 
+void BW::getMetadataKey(QString uri, QString key, QJSValue on_done)
+{
+    this->getMetadataKey(uri, key, [=](QString err, MetadataTuple v, QString from)
+    {
+        MetadataTupleJS* tuple = new MetadataTupleJS(v.value, v.timestamp);
+
+        auto cb = ERes<QString, MetadataTupleJS*, QString>(on_done);
+        cb(err, tuple, from);
+    });
+}
+
 void BW::publishChainWithAcc(QByteArray blob, int account, Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::PUT_CHAIN);
@@ -1103,9 +1409,19 @@ void BW::publishChainWithAcc(QByteArray blob, int account, Res<QString, QString>
     });
 }
 
+void BW::publishChainWithAcc(QByteArray blob, int account, QJSValue on_done)
+{
+    this->publishChainWithAcc(blob, account, ERes<QString, QString>(on_done));
+}
+
 void BW::publishChain(QByteArray blob, Res<QString, QString> on_done)
 {
     this->publishChainWithAcc(blob, 0, on_done);
+}
+
+void BW::publishChain(QByteArray blob, QJSValue on_done)
+{
+    this->publishChain(blob, ERes<QString, QString>(on_done));
 }
 
 void BW::unresolveAlias(QByteArray blob, Res<QString, QString> on_done)
@@ -1123,6 +1439,11 @@ void BW::unresolveAlias(QByteArray blob, Res<QString, QString> on_done)
     });
 }
 
+void BW::unresolveAlias(QByteArray blob, QJSValue on_done)
+{
+    this->unresolveAlias(blob, ERes<QString, QString>(on_done));
+}
+
 void BW::resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done)
 {
     auto f = agent()->newFrame(Frame::RESOLVE_ALIAS);
@@ -1136,6 +1457,11 @@ void BW::resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done)
             on_done("", v, v.count('\0') == v.size());
         }
     });
+}
+
+void BW::resolveLongAlias(QString al, QJSValue on_done)
+{
+    this->resolveLongAlias(al, ERes<QString, QByteArray, bool>(on_done));
 }
 
 void BW::resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done)
@@ -1153,6 +1479,11 @@ void BW::resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done)
     });
 }
 
+void BW::resolveShortAlias(QString al, QJSValue on_done)
+{
+    this->resolveShortAlias(al, ERes<QString, QByteArray, bool>(on_done));
+}
+
 void BW::resolveEmbeddedAlias(QString al, Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::RESOLVE_ALIAS);
@@ -1166,6 +1497,11 @@ void BW::resolveEmbeddedAlias(QString al, Res<QString, QString> on_done)
             on_done("", v);
         }
     });
+}
+
+void BW::resolveEmbeddedAlias(QString al, QJSValue on_done)
+{
+    this->resolveEmbeddedAlias(al, ERes<QString, QString>(on_done));
 }
 
 void BW::resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done)
@@ -1213,6 +1549,11 @@ void BW::resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValid
     });
 }
 
+void BW::resolveRegistry(QString key, QJSValue on_done)
+{
+    this->resolveRegistry(key, ERes<QString, RoutingObject*, RegistryValidity>(on_done));
+}
+
 void BW::entityBalances(Res<QString, QVector<struct balanceinfo>> on_done)
 {
     auto f = agent()->newFrame(Frame::ENTITY_BALANCE);
@@ -1239,6 +1580,22 @@ void BW::entityBalances(Res<QString, QVector<struct balanceinfo>> on_done)
             }
             on_done("", rv);
         }
+    });
+}
+
+void BW::entityBalances(QJSValue on_done)
+{
+    this->entityBalances([=](QString err, QVector<struct balanceinfo> balances)
+    {
+        QVariantList balanceList;
+        for (auto i = balances.cbegin(); i != balances.cend(); i++)
+        {
+            BalanceInfo* bi = new BalanceInfo(*i);
+            balanceList.append(QVariant::fromValue(bi));
+        }
+
+        auto cb = ERes<QString, QVariantList>(on_done);
+        cb(err, balanceList);
     });
 }
 
@@ -1280,6 +1637,15 @@ void BW::addressBalance(QString addr, Res<QString, struct balanceinfo> on_done)
 
             on_done("", bi);
         }
+    });
+}
+
+void BW::addressBalance(QString addr, QJSValue on_done)
+{
+    this->addressBalance(addr, [=](QString err, struct balanceinfo balance)
+    {
+        auto cb = ERes<QString, BalanceInfo*>(on_done);
+        cb(err, new BalanceInfo(balance));
     });
 }
 
