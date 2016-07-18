@@ -6,8 +6,13 @@
 #include <QTimer>
 #include <QSslSocket>
 #include <crypto.h>
-Entity::Entity(int ronum, const char *data, int length) : RoutingObject(ronum, data, length)
+
+Entity::Entity(int ronum, const char *data, int length, QObject* parent)
+    : RoutingObject(ronum, data, length, parent)
+
 {
+    this->isEntity = true;
+
     QByteArray sk;
     if (ronum == bwpo::num::ROEntityWKey)
     {

@@ -17,13 +17,19 @@ QT_FORWARD_DECLARE_CLASS(PayloadObject)
 QT_FORWARD_DECLARE_CLASS(Message)
 QT_FORWARD_DECLARE_CLASS(AgentConnection)
 
-class RoutingObject
+class RoutingObject : public QObject
 {
+    Q_OBJECT
+    Q_PROPERTY(bool isEntity MEMBER isEntity)
+    Q_PROPERTY(bool isDOT MEMBER isDOT)
+
 public:
-    RoutingObject()
-        : offset(0), m_ronum(0), m_data(nullptr), m_length(0) {}
-    RoutingObject(int ronum, const char *data, int length)
-        : offset(0), m_ronum(ronum), m_data(data), m_length(length) {}
+    RoutingObject(QObject* parent = nullptr)
+        : QObject(parent), isEntity(false), isDOT(false), offset(0), m_ronum(0),
+          m_data(nullptr), m_length(0) {}
+    RoutingObject(int ronum, const char *data, int length, QObject* parent = nullptr)
+        : QObject(parent), isEntity(false), isDOT(false), offset(0), m_ronum(ronum),
+          m_data(data), m_length(length) {}
     ~RoutingObject()
     {
         delete[] m_data;
@@ -43,6 +49,9 @@ public:
         return m_length - offset;
     }
 
+    bool isEntity;
+    bool isDOT;
+
 protected:
     int offset;
 
@@ -52,10 +61,13 @@ private:
     int m_length;
 };
 
-class Entity : RoutingObject
+class Entity : public RoutingObject
 {
+    Q_OBJECT
+
 public:
-    Entity(int ronum, const char* data, int length);
+    Entity(QObject* parent = nullptr) : RoutingObject(parent) {};
+    Entity(int ronum, const char* data, int length, QObject* parent = nullptr);
 
     QByteArray getSigningBlob();
     QByteArray vk;
