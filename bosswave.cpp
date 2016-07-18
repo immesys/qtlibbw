@@ -98,14 +98,18 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
     }
     m_agent = new AgentConnection();
     connect(m_agent,&AgentConnection::agentChanged,this,&BW::agentChanged);
-//#ifdef Q_OS_ANDROID
-    Entity *e = new Entity(bwpo::num::ROEntityWKey, ourentity.data(), ourentity.length());
+#ifdef Q_OS_ANDROID
+    char *cp = new char[ourentity.length()];
+    memcpy(cp,ourentity.data(),ourentity.length());
+    Entity *e = new Entity(bwpo::num::ROEntityWKey, cp,ourentity.length());
     Q_ASSERT(e);
+    QByteArray sk = e->sk;
+    QByteArray vk = e->vk;
     QByteArray remvk = QByteArray::fromBase64("gdIHa4kskW9_gAKm4liWnLPN7lQ8N4L2oqCCdK112fA=", QByteArray::Base64UrlEncoding);
-    m_agent->beginRagentConnection(e->sk,e->vk,"ragent.cal-sdb.org",28590,remvk);
-//#else
-//    m_agent->beginConnection("localhost",28589);
-//#endif
+    m_agent->beginRagentConnection(sk,vk,"ragent.cal-sdb.org",28590,remvk);
+#else
+    m_agent->beginConnection("localhost",28589);
+#endif
 }
 
 AgentConnection* BW::agent()
@@ -713,6 +717,7 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
 
     agent()->transact(this, f, [=](PFrame f, bool final)
     {
+        qDebug() << "frame is final:" << final;
         if (f->isType(Frame::RESPONSE))
         {
             if (!f->checkResponse(on_result, PMessage(), final))
@@ -723,6 +728,7 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
 
         bool ok;
         f->getHeaderS("from", &ok);
+        qDebug() << "would call" << ok;
         if (ok)
         {
             on_result("", Message::fromFrame(f), final);
@@ -747,6 +753,7 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
                 doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
     {
+        qDebug() << "got sub-query result";
         if (state->goterror)
         {
             goto end;
@@ -762,6 +769,7 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
         state->messages.append(msg);
 
     end:
+        qDebug() << "final" << final;
         if (final)
         {
             if (!state->goterror)

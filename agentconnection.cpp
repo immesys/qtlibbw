@@ -112,7 +112,9 @@ quint32 AgentConnection::getSeqNo()
 void AgentConnection::onConnect()
 {
     qDebug() << "socket connected";
-    emit agentChanged(true, "");
+    if (!m_ragent) {
+        emit agentChanged(true, "");
+    } //otherwise we do it later
 }
 void AgentConnection::onError()
 {
@@ -196,9 +198,15 @@ void AgentConnection::onArrivedData()
         qDebug() <<"our sk" << m_our_sk.toBase64(QByteArray::Base64UrlEncoding);
         qDebug() <<"our vk" << m_our_vk.toBase64(QByteArray::Base64UrlEncoding);
         SignBlob(m_our_sk, m_our_vk,&nonce,&oursig);
+        bool ok = VerifyBlob(m_our_vk,oursig,nonce);
+        qDebug() << "we think sig is " << ok;
+        qDebug()<< "nonce was" << nonce.toBase64();
         int done = sock->write(m_our_vk);
         Q_ASSERT(done == 32);
         done = sock->write(oursig);
+        qDebug() << "our sig was" << oursig.toBase64();
+        qDebug() <<"our sk2" << m_our_sk.toBase64(QByteArray::Base64UrlEncoding);
+        qDebug() <<"our vk2" << m_our_vk.toBase64(QByteArray::Base64UrlEncoding);
         Q_ASSERT(done == 64);
         m_ragent_handshake=1;
     }
@@ -213,7 +221,9 @@ void AgentConnection::onArrivedData()
             qFatal("remote dislikes us");
         }
         m_ragent_handshake=2;
+        emit agentChanged(true, "");
     }
+    qDebug() << "going further";
     if (curFrame.isNull())
     {
         //New frame, read the header
