@@ -101,8 +101,7 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
     }
     m_agent = new AgentConnection();
     connect(m_agent,&AgentConnection::agentChanged,this,&BW::agentChanged);
-//#ifdef Q_OS_ANDROID
-#if 1
+#ifdef Q_OS_ANDROID
     char *cp = new char[ourentity.length()];
     memcpy(cp,ourentity.data(),ourentity.length());
     Entity *e = new Entity(bwpo::num::ROEntityWKey, cp,ourentity.length());
