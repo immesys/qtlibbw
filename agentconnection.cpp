@@ -228,7 +228,6 @@ void AgentConnection::onArrivedData()
         m_ragent_handshake=2;
         emit agentChanged(true, "");
     }
-    qDebug() << "going further";
     if (curFrame.isNull())
     {
         //New frame, read the header

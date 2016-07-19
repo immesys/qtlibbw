@@ -801,7 +801,6 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
 
     agent()->transact(this, f, [=](PFrame f, bool final)
     {
-        qDebug() << "frame is final:" << final;
         if (f->isType(Frame::RESPONSE))
         {
             if (!f->checkResponse(on_result, PMessage(), final))
@@ -812,7 +811,6 @@ void BW::query(QString uri, QString primaryAccessChain, bool autoChain, QList<Ro
 
         bool ok;
         f->getHeaderS("from", &ok);
-        qDebug() << "would call" << ok;
         if (ok)
         {
             on_result("", Message::fromFrame(f), final);
@@ -954,7 +952,6 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
     this->query(uri, primaryAccessChain, autoChain, roz, expiry, expiryDelta, elaboratePAC,
                 doNotVerify, leavePacked, [=](QString error, PMessage msg, bool final)
     {
-        qDebug() << "got sub-query result";
         if (state->goterror)
         {
             goto end;
@@ -973,7 +970,6 @@ void BW::queryList(QString uri, QString primaryAccessChain, bool autoChain, QLis
         }
 
     end:
-        qDebug() << "final" << final;
         if (final)
         {
             if (!state->goterror)
