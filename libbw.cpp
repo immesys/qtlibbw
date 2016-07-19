@@ -5,6 +5,7 @@
 
 void initLibBW()
 {
+    qDebug() << "doing initlibbw";
     qmlRegisterSingletonType<BW>("BOSSWAVE", 1, 0, "BW", &BW::qmlSingleton);
     qmlRegisterType<MetadataTupleJS>("BOSSWAVE", 1, 0, "MetadataTuple");
     qmlRegisterType<BalanceInfo>("BOSSWAVE", 1, 0, "BalanceInfo");

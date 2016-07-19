@@ -66,6 +66,7 @@ BW::~BW()
 
 QObject *BW::qmlSingleton(QQmlEngine *engine, QJSEngine *scriptEngine)
 {
+    qDebug() << "qmlSingleton called";
     auto rv = BW::instance();
     rv->engine = engine;
     rv->jsengine = scriptEngine;
@@ -73,7 +74,9 @@ QObject *BW::qmlSingleton(QQmlEngine *engine, QJSEngine *scriptEngine)
 }
 BW *BW::instance()
 {
+    qDebug() << "doing BW init";
     static BW *bw = new BW();
+    qDebug () << "BW init complete";
     return bw;
 }
 
@@ -98,7 +101,8 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
     }
     m_agent = new AgentConnection();
     connect(m_agent,&AgentConnection::agentChanged,this,&BW::agentChanged);
-#ifdef Q_OS_ANDROID
+//#ifdef Q_OS_ANDROID
+#if 1
     char *cp = new char[ourentity.length()];
     memcpy(cp,ourentity.data(),ourentity.length());
     Entity *e = new Entity(bwpo::num::ROEntityWKey, cp,ourentity.length());
@@ -106,8 +110,10 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
     QByteArray sk = e->sk;
     QByteArray vk = e->vk;
     QByteArray remvk = QByteArray::fromBase64("gdIHa4kskW9_gAKm4liWnLPN7lQ8N4L2oqCCdK112fA=", QByteArray::Base64UrlEncoding);
+    qDebug() << "doing RAGENT conn";
     m_agent->beginRagentConnection(sk,vk,"ragent.cal-sdb.org",28590,remvk);
 #else
+    qDebug() << "doing normal conn";
     m_agent->beginConnection("localhost",28589);
 #endif
 }

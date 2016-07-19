@@ -217,6 +217,7 @@ void AgentConnection::onArrivedData()
     }
     if (m_ragent && m_ragent_handshake==1)
     {
+        qDebug() << "stage 2";
         if (sock->bytesAvailable()<4)
             return;
         char st [4];
@@ -227,6 +228,7 @@ void AgentConnection::onArrivedData()
         }
         m_ragent_handshake=2;
         emit agentChanged(true, "");
+        qDebug() << "finished remote agent handshake";
     }
     if (curFrame.isNull())
     {
