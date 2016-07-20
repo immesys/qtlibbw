@@ -26,5 +26,8 @@ QByteArray UnFmtKey(QByteArray &k)
 }
 void ed25519_randombytes_unsafe (void *p, size_t len)
 {
+    Q_UNUSED(p);
+    Q_UNUSED(len);
     qFatal("you should not call this");
+    Q_UNREACHABLE();
 }
