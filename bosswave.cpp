@@ -112,6 +112,7 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
     qDebug() << "doing RAGENT conn";
     m_agent->beginRagentConnection(sk,vk,"ragent.cal-sdb.org",28590,remvk);
 #else
+    Q_UNUSED(ourentity);
     qDebug() << "doing normal conn";
     m_agent->beginConnection("localhost",28589);
 #endif
@@ -461,7 +462,7 @@ void BW::publishText(QVariantMap params, QJSValue on_done)
 void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                    bool doNotVerify, bool leavePacked, Res<PMessage> on_msg,
-                   Res<QString> on_done, Res<QString> on_handle)
+                   Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::SUBSCRIBE);
     if (autoChain)
@@ -499,17 +500,11 @@ void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain, QLis
     {
         if (f->isType(Frame::RESPONSE))
         {
-            QString handle = f->getHeaderS("handle");
-            on_handle(handle);
 
-            if(f->checkResponse(on_done))
+            if(f->checkResponse(on_done, QStringLiteral("")))
             {
-                qDebug() << "invoking nil reply";
-                on_done("");
-            }
-            else
-            {
-                qDebug() << "not invoking nil reply";
+                QString handle = f->getHeaderS("handle");
+                on_done("", handle);
             }
         }
         else
@@ -522,7 +517,7 @@ void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain, QLis
 void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                           QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                           bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
-                          Res<QString> on_done, Res<QString> on_handle)
+                          Res<QString, QString> on_done)
 {
     BW::subscribe(uri, primaryAccessChain, autoChain, roz, expiry,
                   expiryDelta, elaboratePAC, doNotVerify, leavePacked,
@@ -533,10 +528,10 @@ void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChai
             QVariant v = MsgPack::unpack(po->contentArray());
             on_msg(po->ponum(), v.toMap());
         }
-    }, on_done, on_handle);
+    }, on_done);
 }
 
-void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle)
+void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
@@ -565,14 +560,13 @@ void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done,
     this->subscribeMsgPack(uri, primaryAccessChain, autoChain, roz, expiry,
                            expiryDelta, elaboratePAC, doNotVerify, persist,
                            ERes<int, QVariantMap>(on_msg),
-                           ERes<QString>(on_done),
-                           ERes<QString>(on_handle));
+                           ERes<QString, QString>(on_done));
 }
 
 void BW::subscribeText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                        QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                        bool doNotVerify, bool leavePacked, Res<int, QString> on_msg,
-                       Res<QString> on_done, Res<QString> on_handle)
+                       Res<QString, QString> on_done)
 {
     BW::subscribe(uri, primaryAccessChain, autoChain, roz, expiry,
                   expiryDelta, elaboratePAC, doNotVerify, leavePacked,
@@ -582,10 +576,10 @@ void BW::subscribeText(QString uri, QString primaryAccessChain, bool autoChain, 
         {
             on_msg(po->ponum(), QString(po->contentArray()));
         }
-    }, on_done, on_handle);
+    }, on_done);
 }
 
-void BW::subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle)
+void BW::subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
@@ -614,8 +608,7 @@ void BW::subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJ
     this->subscribeText(uri, primaryAccessChain, autoChain, roz, expiry,
                         expiryDelta, elaboratePAC, doNotVerify, persist,
                         ERes<int, QString>(on_msg),
-                        ERes<QString>(on_done),
-                        ERes<QString>(on_handle));
+                        ERes<QString, QString>(on_done));
 }
 
 void BW::unsubscribe(QString handle, Res<QString> on_done)
@@ -1751,14 +1744,14 @@ void BW::revokeDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<
     });
 }
 
-void BW::revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* dr, Res<QString> on_done)
+void BW::revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done)
 {
     auto f = agent()->newFrame(Frame::REVOKE_DRO_ACCEPT);
     f->addHeader("account", QString::number(account));
     f->addHeader("drvk", drvk);
-    if (dr != nullptr)
+    if (ns != nullptr)
     {
-        QByteArray sblob = dr->getSigningBlob();
+        QByteArray sblob = ns->getSigningBlob();
         PayloadObject* po = PayloadObject::load(bwpo::num::ROEntityWKey, sblob.data(), sblob.length());
         f->addPayloadObject(po);
     }
@@ -1899,6 +1892,11 @@ void BW::setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<
 
 void BW::createLongAlias(int account, QByteArray key, QByteArray val, Res<QString> on_done)
 {
+    if (key.length() > 32 || val.length() > 32)
+    {
+        on_done("Key and val must be at most 32 bytes");
+        return;
+    }
     auto f = agent()->newFrame(Frame::MK_LONG_ALIAS);
     f->addHeader("account", QString::number(account));
     f->addHeaderB("content", val);

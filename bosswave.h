@@ -122,7 +122,6 @@ public:
      */
     void connectAgent(QByteArray &ourentity);
 
-   // void connectAgentWithFallback();
     /**
      * @brief createEntity Create a new entity
      * @param expiry The time at which the entity expires. Ignored if invalid (year == 0)
@@ -137,6 +136,11 @@ public:
                       QString comment, QList<QString> revokers, bool omitCreationDate,
                       Res<QString, QString, QByteArray> on_done);
 
+    /**
+     * @brief createEntity Javascript version of createEntity
+     * @param params A map of parameters. Keys are: (1) Expiry, (2) ExpiryDelta, (3) Contact, (4) Comment, (5) Revokers, and (6) OmitCreationDate.
+     * @param on_done Javascript callback
+     */
     Q_INVOKABLE void createEntity(QVariantMap params, QJSValue on_done);
 
     /**
@@ -161,21 +165,38 @@ public:
                    QString accessPermissions, QVariantMap appPermissions,
                    Res<QString, QString, QByteArray> on_done);
 
+    /**
+     * @brief createDOT Javscript version of createDOT
+     * @param params A map of parameters. Keys are: (1) IsPermission, (2) To, (3) TTL, (4) Expiry, (5) ExpiryDelta, (6) Contact, (7) Comment, (8) Revokers, (9) OmitCreationDate, (10) URI, (11) AccessPermissions, and (12) AppPermissions
+     * @param on_done Javascript callback
+     */
     Q_INVOKABLE void createDOT(QVariantMap params, QJSValue on_done);
 
+    /**
+     * @brief createDOTChain Create a Chain of DOTs
+     * @param dots The dots to use
+     * @param isPermission True if this is a permission chain (not supported)
+     * @param unElaborate
+     * @param on_done Callback invoked with three arguments: (1) an error message, or the empty string if there was no error, (2) the hash of the DOT chain, and (3) the DOT chain itself
+     */
     void createDOTChain(QList<QString> dots, bool isPermission, bool unElaborate,
                         Res<QString, QString, RoutingObject*> on_done);
 
     Q_INVOKABLE void createDOTChain(QVariantMap params, QJSValue on_done);
 
     /**
-     * @brief publish a bosswave message
-     * @param uri the URI to publish to
-     * @param poz the payload objects to publish
-     * @param on_done a function to call when the operation is complete.
-     *
-     * @ingroup cpp
-     * @since 1.0
+     * @brief publish Publish to a resource
+     * @param uri The resource to publish to
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param poz Payload objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param persist If true, the message is persisted
+     * @param on_done The callback that is executed when the publish process is complete. Takes one argument: an error message, or the empty string if there was no error
      */
     void publish(QString uri, QString primaryAccessChain, bool autoChain,
                  QList<RoutingObject*> roz, QList<PayloadObject*> poz,
@@ -183,10 +204,19 @@ public:
                  bool persist, Res<QString> on_done = _nop_res_status);
 
     /**
-     * @brief Publish a MsgPack object to the given URI
-     *
-     * @ingroup qml
-     * @since 1.0
+     * @brief publish Publish a MagPack object to a resource
+     * @param uri The resource to publish to
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param ponum The payload object number for the message
+     * @param val The message, as a QVariantMap
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param persist If true, the message is persisted
+     * @param on_done The callback that is executed when the publish process is complete. Takes one argument: an error message, or the empty string if there was no error
      */
     void publishMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                         int ponum, QVariantMap val, QDateTime expiry, qreal expiryDelta,
@@ -196,11 +226,20 @@ public:
     Q_INVOKABLE void publishMsgPack(QVariantMap params, QJSValue on_done);
 
     /**
-      * @brief Publish text of the specified type to the given URI
-      *
-      * @ingroup qml
-      * @since 1.3
-      */
+     * @brief publish Publish text to a resource
+     * @param uri The resource to publish to
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param ponum The payload object number for the message
+     * @param val The message, as a QVariantMap
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param persist If true, the message is persisted
+     * @param on_done The callback that is executed when the publish process is complete. Takes one argument: an error message, or the empty string if there was no error
+     */
     void publishText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                      int ponum, QString msg, QDateTime expiry, qreal expiryDelta,
                      QString elaboratePAC, bool doNotVerify, bool persist,
@@ -209,47 +248,65 @@ public:
     Q_INVOKABLE void publishText(QVariantMap params, QJSValue on_done);
 
     /**
-     * @brief Subscribe to the given URI
-     * @param uri The URI to subscribe to
-     * @param on_msg A callback for each received message
-     * @param on_done The callback to be executed with the error message. Empty implies success.
-     * @param on_handle The callback to be executed with the subscribe handle.
-     *
-     * @ingroup cpp
-     * @since 1.1
+     * @brief subscribe Subscribe to a resource
+     * @param uri The resource to subscribe to
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_msg The callback that is executed when a message is received
+     * @param on_done The callback that is executed when the subscribe process is complete. First argument is an error message, or the empty string if no error occurred. Second argument is the subscription handle.
      */
     void subscribe(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                    bool doNotVerify, bool leavePacked, Res<PMessage> on_msg,
-                   Res<QString> on_done = _nop_res_status, Res<QString> on_handle = _nop_res_status);
+                   Res<QString, QString> on_done = _nop_res_status);
 
     /**
-     * @brief Subscribe to a MsgPack resource
+     * @brief subscribeText Subscribe to a text resource
      * @param uri The resource to subscribe to
-     * @param on_msg The callback to be called for each message
-     * @param on_done The callback to be executed with the error message. Empty implies success.
-     * @param on_handle The callback to be executed with the subscribe handle.
-     *
-     * This will unpack msgpack PO's and pass them to the on_msg callback
-     *
-     * @ingroup qml
-     * @since 1.1
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_msg The callback that is executed when a message is received, with two arguments: (1) the PO number, and (2) the unpacked contents
+     * @param on_done The callback that is executed when the subscribe process is complete
      */
     void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                           QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                           bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
-                          Res<QString> on_done = _nop_res_status,
-                          Res<QString> on_handle = _nop_res_status);
+                          Res<QString, QString> on_done = _nop_res_status);
 
-    Q_INVOKABLE void subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle);
+    Q_INVOKABLE void subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done);
 
+    /**
+     * @brief subscribeText Subscribe to a text resource
+     * @param uri The resource to subscribe to
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_msg The callback that is executed when a message is received, with two arguments: (1) the PO number, and (2) the text contents
+     * @param on_done The callback that is executed when the subscribe process is complete. It takes one argument: an error message, or the empty string if there was no error
+     */
     void subscribeText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                        QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                        bool doNotVerify, bool leavePacked, Res<int, QString> on_msg,
-                       Res<QString> on_done = _nop_res_status,
-                       Res<QString> on_handle = _nop_res_status);
+                       Res<QString, QString> on_done = _nop_res_status);
 
-    Q_INVOKABLE void subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done, QJSValue on_handle);
+    Q_INVOKABLE void subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done);
 
     /**
      * @brief Unsubscribe from a resource
@@ -327,18 +384,36 @@ public:
     Q_INVOKABLE void buildAnyChain(QVariantMap params, QJSValue on_done);
 
     /**
-     * @brief Query the given URI pattern and return all messages that match
-     * @param uri the URI to query
-     * @param on_done A callback receiving the status list of messages
-     *
-     * @ingroup cpp
-     * @since 1.0
+     * @brief query Query a resource for persisted messages
+     * @param uri The resource to query
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_result Callback that is invoked multiple times. Takes three arguments: (1) error message, or the empty string if there was no error, (2) a persisted message or nullptr, (3) a boolean indicating whether all persisted messages have been delivered (in which case the callback will not be invoked again)
      */
     void query(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                bool doNotVerify, bool leavePacked,
                Res<QString, PMessage, bool> on_result);
 
+    /**
+     * @brief queryMsgPack Query a resource for persisted MsgPack messages and decode them as MsgPack
+     * @param uri The resource to query
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_result Callback that is invoked multiple times. Takes five arguments: (1) error message, or the empty string if there was no error, (2) the payload object number of a persisted message, (3) the decoded message, as a QVariantMap, (4) a boolean indicating whether a message is included in this invocation, and (5) a boolean indicating whether all persisted messages have been delivered (in which case the callback will not be invoked again)
+     */
     void queryMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                       QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                       bool doNotVerify, bool leavePacked,
@@ -346,6 +421,19 @@ public:
 
     Q_INVOKABLE void queryMsgPack(QVariantMap params, QJSValue on_result);
 
+    /**
+     * @brief queryText Query a resource for persisted text messages and decode them as text
+     * @param uri The resource to query
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_result Callback that is invoked multiple times. Takes five arguments: (1) error message, or the empty string if there was no error, (2) the payload object number of a persisted message, (3) the decoded message, as a QString, (4) a boolean indicating whether a message is included in this invocation, and (5) a boolean indicating whether all persisted messages have been delivered (in which case the callback will not be invoked again)
+     */
     void queryText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                    bool doNotVerify, bool leavePacked,
@@ -353,15 +441,40 @@ public:
 
     Q_INVOKABLE void queryText(QVariantMap params, QJSValue on_result);
 
+    /**
+     * @brief queryList Query a resource for persisted messages, returning all of them as a list
+     * @param uri The resource to query
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_result Callback that is invoked once. Takes two arguments: (1) error message, or the empty string if there was no error, (2) a list of persisted messages
+     */
     void queryList(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                    bool doNotVerify, bool leavePacked,
                    Res<QString, QList<PMessage>> on_done);
 
+    /**
+     * @brief queryList Query a resource for persisted messages, giving only one result
+     * @param uri The resource to query
+     * @param primaryAccessChain The Primary Access Chain to use
+     * @param autoChain If true, the DOT chain is inferred automatically
+     * @param roz Routing objects to include in the message
+     * @param expiry The time at which the message should expire (ignored if invalid)
+     * @param expiryDelta The number of milliseconds after which the message should expire (ignored if negative)
+     * @param elaboratePAC Elaboration level for the Primary Access Chain
+     * @param doNotVerify If false, the router will verify this message as if it were hostile
+     * @param leavePacked If true, the POs and ROs are left in the bosswave format
+     * @param on_result Callback that is invoked once. Takes two arguments: (1) error message, or the empty string if there was no error, (2) a persisted message, or nullptr if none are present
+     */
     void queryOne(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                   QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                   bool doNotVerify, bool leavePacked, Res<QString, PMessage> on_done);
-
 
     /**
      * @brief list Lists all immediate children of a URI that have persisted messages in their children
@@ -391,9 +504,9 @@ public:
     Q_INVOKABLE void publishDOTWithAcc(QByteArray blob, int account, QJSValue on_done);
 
     /**
-     * @brief publishDOT Like publishDOTWithAcc, except that you don't have to explicitly specify the account
-     * @param blob
-     * @param on_done
+     * @brief publishDOT Like publishDOTWithAcc, but always uses account number 1
+     * @param blob The DOT to publish
+     * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the hash
      */
     void publishDOT(QByteArray blob, Res<QString, QString> on_done);
 
@@ -410,94 +523,242 @@ public:
 
     Q_INVOKABLE void publishEntityWithAcc(QByteArray blob, int account, QJSValue on_done);
 
+    /**
+     * @brief publishEntity Like publishEntityWithAcc, but always uses account number 1
+     * @param blob The entity to publish
+     * @param on_done Callback called with two arguments: (1) the error message (or empty string if no error), and (2) the VK
+     */
     void publishEntity(QByteArray blob, Res<QString, QString> on_done);
 
     Q_INVOKABLE void publishEntity(QByteArray blob, QJSValue on_done);
 
     /**
      * @brief setMetadata Sets metadata published at the URI
-     * @param uri
-     * @param key
-     * @param val
+     * @param uri The URI at which the metadata should be set
+     * @param key The metadata key to set
+     * @param val The value to which the key should be bound
      * @param on_done Callback invoked with a single argument: an error message, or the empty string if there was no error
      */
     void setMetadata(QString uri, QString key, QString val, Res<QString> on_done);
 
     Q_INVOKABLE void setMetadata(QString uri, QString key, QString val, QJSValue on_done);
 
+    /**
+     * @brief delMetadata Deletes the metadata, for a given key, published at a URI
+     * @param uri The URI from which the key should be deleted
+     * @param key The metadata key to delete
+     * @param on_done Callback invoked with a single argument: an error message, or the empty string if there was no error
+     */
     void delMetadata(QString uri, QString key, Res<QString> on_done);
 
     Q_INVOKABLE void delMetadata(QString uri, QString key, QJSValue on_done);
 
+    /**
+     * @brief getMetadata Get all of the metadata at a URI
+     * @param uri The URI at which to resolve the metadata
+     * @param on_done Callback invoked with three arguments: (1) an error message, or the empty string if there was no error, (2) a map with the key-value pairs of that metadata, and (3) a map indicating the URI at which each key was resolved
+     */
     void getMetadata(QString uri, Res<QString, QMap<QString, MetadataTuple>, QMap<QString, QString>> on_done);
 
     Q_INVOKABLE void getMetadata(QString uri, QJSValue on_done);
 
+    /**
+     * @brief getMetadataKey Get the metadata at a URI corresponding to a single key
+     * @param uri The URI at which to resolve the metadata
+     * @param key The key whose value is to be resolved
+     * @param on_done Callback invoked with three arguments: (1) an error message, or the empty string if there was no error, (2) the value corresponding to that key, and (3) the URI at which the key was resolved
+     */
     void getMetadataKey(QString uri, QString key, Res<QString, MetadataTuple, QString> on_done);
 
     Q_INVOKABLE void getMetadataKey(QString uri, QString key, QJSValue on_done);
 
+    /**
+     * @brief publishChainWithAcc Publish a DOT chain using the specified account number
+     * @param blob The DOT chain as a byte array
+     * @param account The acccount number to use
+     * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the hash of the DOT chain
+     */
     void publishChainWithAcc(QByteArray blob, int account, Res<QString, QString> on_done);
 
     Q_INVOKABLE void publishChainWithAcc(QByteArray blob, int account, QJSValue on_done);
 
+    /**
+     * @brief publishChain Like publishChainWithAcc, but uses account 1
+     * @param blob
+     * @param on_done
+     */
     void publishChain(QByteArray blob, Res<QString, QString> on_done);
 
     Q_INVOKABLE void publishChain(QByteArray blob, QJSValue on_done);
 
+    /**
+     * @brief unresolveAlias Unresolves an entity to an alias
+     * @param blob The entity to unresolve, as a byte array
+     * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the alias that the entity unresolved to
+     */
     void unresolveAlias(QByteArray blob, Res<QString, QString> on_done);
 
     Q_INVOKABLE void unresolveAlias(QByteArray blob, QJSValue on_done);
 
+    /**
+     * @brief resolveLongAlias Resolve a long alias to a byte array
+     * @param al The long alias to resolve
+     * @param on_done Callback invoked with three arguments: (1) an error message, or the empty string if there was no error, (2) the byte array that the long alias resolved to, and (3) a boolean indicating whether the long alias was successfully resolved
+     */
     void resolveLongAlias(QString al, Res<QString, QByteArray, bool> on_done);
 
     Q_INVOKABLE void resolveLongAlias(QString al, QJSValue on_done);
 
+    /**
+     * @brief resolveShortAlias Resolve a short alias to a byte array
+     * @param al The short alias to resolve
+     * @param on_done Callback invoked with three arguments: (1) an error message, or the empty string if there was no error, (2) the byte array that the short alias resolved to, and (3) a boolean indicating whether the short alias was successfully resolved
+     */
     void resolveShortAlias(QString al, Res<QString, QByteArray, bool> on_done);
 
     Q_INVOKABLE void resolveShortAlias(QString al, QJSValue on_done);
 
+    /**
+     * @brief resolveEmbeddedAlias Resolve an embedded alias to a string
+     * @param al The embedded alias to resolve
+     * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the data that the embedded alias resolved to
+     */
     void resolveEmbeddedAlias(QString al, Res<QString, QString> on_done);
 
     Q_INVOKABLE void resolveEmbeddedAlias(QString al, QJSValue on_done);
 
+    /**
+     * @brief resolveRegistry Resolve a key to a Routing Object in the registry
+     * @param key The key to resolve
+     * @param on_done Callback invoked with three arguments: (1) an error message, or the empty string if there was no error, (2) the Routing Object that the key resolved to, and (3) an enumeration indicating the result of the resolution
+     */
     void resolveRegistry(QString key, Res<QString, RoutingObject*, RegistryValidity> on_done);
 
     Q_INVOKABLE void resolveRegistry(QString key, QJSValue on_done);
 
+    /**
+     * @brief entityBalances Get the balances of the current entity's bank accounts
+     * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the balances of this entity's bank accounts
+     */
     void entityBalances(Res<QString, QVector<struct balanceinfo>> on_done);
 
     Q_INVOKABLE void entityBalances(QJSValue on_done);
 
+    /**
+     * @brief addressBalance Get the balance of the bank account with the given address
+     * @param addr The address of the bank account whose balance to query
+     * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the balance of the specified bank account
+     */
     void addressBalance(QString addr, Res<QString, struct balanceinfo> on_done);
 
     Q_INVOKABLE void addressBalance(QString addr, QJSValue on_done);
 
+    /**
+     * @brief getBCInteractionParams Get the Block Chain Interaction Parameters
+     * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the interaction parameters
+     */
     void getBCInteractionParams(Res<QString, struct currbcip> on_done);
 
+    /**
+     * @brief setBCInteractionParams Sets the Block Chain Interaction Parameters
+     * @param confirmations The new number of confirmations (ignored if negative)
+     * @param timeout The new timeout (ignored if negative)
+     * @param maxAge The new max age (ignored if negative)
+     * @param on_done Callback (same as getBCInteractionParams)
+     */
     void setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t maxAge,
                                 Res<QString, struct currbcip> on_done);
 
+    /**
+     * @brief transferEther Transfer Ether from this entity to another entity
+     * @param from The bank account of this entity from which to tranfer Ether
+     * @param to The entity to which Ether should be transferred
+     * @param ether The number of Ether to transfer
+     * @param on_done Callback called with a single argument: an error message, or the empty string if there was no error
+     */
     void transferEther(int from, QString to, double ether, Res<QString> on_done);
 
+    /**
+     * @brief newDesignatedRouterOffer Make a new Designated Router Offer
+     * @param account The account to use to make the offer
+     * @param nsvk The namespace verifying key
+     * @param dr The router to which to make the offer
+     * @param on_done Callback called with a single argument: an error message, or the empty string if there was no error
+     */
     void newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done);
 
+    /**
+     * @brief revokeDesignatedRouterOffer Revoke a Designated Router Offer
+     * @param account The account to use to revoke the offer
+     * @param nvsk The namespace verifying key
+     * @param dr The router to which the offer was made
+     * @param on_done Callback called with a single argument: an error message, or the empty string if there was no error
+     */
     void revokeDesignatedRouterOffer(int account, QString nvsk, Entity* dr, Res<QString> on_done);
 
-    void revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* dr, Res<QString> on_done);
+    /**
+     * @brief revokeAcceptanceOfDesignatedRouterOffer Revoke acceptance of a Designated Router Offer
+     * @param account The account to use to revoke the offer
+     * @param drvk The verifying key of the designated router
+     * @param ns The namespace
+     * @param on_done Callback called with a single argument: an error message, or the empty string if there was no error
+     */
+    void revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done);
 
+    /**
+     * @brief revokeEntity Revoke the entity with the specified VK
+     * @param vk The verifying key
+     * @param on_done Callback called with three arguments: (1) an error message, or the empty string if there was no error, (2) the hash, and (3) the contents of the Payload Object
+     */
     void revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done);
 
+    /**
+     * @brief revokeDOT Revoke the DOT with the specified hash
+     * @param hash The hash of the dot to revoke
+     * @param on_done Callback called with three arguments: (1) an error message, or the empty string if there was no error, (2) the hash, and (3) the contents of the Payload Object
+     */
     void revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done);
 
+    /**
+     * @brief publishRevocation Publishes a revocation
+     * @param account The account to use
+     * @param blob The revocation to publish
+     * @param on_done Callback called with two arguments: (1) an error message, or the empty string if there was no error, and (2) the hash
+     */
     void publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done);
 
+    /**
+     * @brief getDesignatedRouterOffers Get the designated router offers
+     * @param nsvk The namespace verifying key
+     * @param on_done Callback invoked with four arguments: (1) an error message, or the empty string if there was no error, (2) the contents of the active header, (3) the contents of the srv header, and (4) the offers, as a list of designated router verifying keys
+     */
     void getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QList<QString>> on_done);
 
+    /**
+     * @brief acceptDesignatedRouterOffer Accept a designated router offer
+     * @param account The account number to use
+     * @param drvk The designated router verifying key to use
+     * @param ns The namespace
+     * @param on_done Callback invoked with one argument: an error message, or the empty string if there was no error
+     */
     void acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done);
 
+    /**
+     * @brief setDesignatedRouterSRVRecord Sets the designated router SRV record
+     * @param account The account number to use
+     * @param srv The SRV record
+     * @param dr The designated router
+     * @param on_done Callback invoked with one argument: an error message, or the empty string if there was no error
+     */
     void setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<QString> on_done);
 
+    /**
+     * @brief createLongAlias Creates a long alias
+     * @param account The account number to use
+     * @param key The new alias (at most 32 bytes)
+     * @param val The value that the alias resolves to (at most 32 bytes)
+     * @param on_done Callback invoked with one argument: an error message, or the empty string if there was no error
+     */
     void createLongAlias(int account, QByteArray key, QByteArray val, Res<QString> on_done);
 
     /**
