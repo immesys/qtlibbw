@@ -696,7 +696,6 @@ void BW::buildChain(QString uri, QString permissions, QString to,
         sc->valid = false;
         if (f->checkResponse(on_done, sc, true))
         {
-            QVariantMap chain;
             QString hash = f->getHeaderS("hash");
             if (hash != QStringLiteral(""))
             {
@@ -708,11 +707,11 @@ void BW::buildChain(QString uri, QString permissions, QString to,
                 PayloadObject* po = f->getPayloadObjects().value(0);
                 if (po == nullptr)
                 {
-                    sc->content = QByteArray()
+                    sc->content = QByteArray();
                 }
                 else
                 {
-                    sc->content = po->contentArray()
+                    sc->content = po->contentArray();
                 }
             }
             on_done("", sc, final);

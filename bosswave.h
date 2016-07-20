@@ -1418,7 +1418,7 @@ public:
     /**
      * @brief The timestamp for this value
      */
-    int64_t timestamp;
+    QDateTime time;
 };
 
 /**
