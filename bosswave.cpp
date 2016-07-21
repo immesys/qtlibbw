@@ -7,6 +7,7 @@
 
 #include <msgpack.h>
 
+#include <cmath>
 #include <cstdio>
 
 class NotImplementedException : public std::exception
