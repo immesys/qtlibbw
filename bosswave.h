@@ -1039,9 +1039,9 @@ public:
 
     /**
      * @brief Sets the Block Chain Interaction Parameters
-     * @param confirmations The new number of confirmations (ignored if negative)
-     * @param timeout The new timeout (ignored if negative)
-     * @param maxAge The new max age (ignored if negative)
+     * @param confirmations The new number of confirmations i.e., blocks to wait to consider a transaction secure (ignored if negative)
+     * @param timeout The new timeout i.e., blocks to wait before giving up (ignored if negative)
+     * @param maxAge The new max age i.e., maximum age of a chain, in seconds, before considering it stale (ignored if negative)
      * @param on_done Callback invoked with two arguments: (1) an error message, or the empty string if there was no error, and (2) the interaction parameters
      *
      * @ingroup cpp
@@ -1474,13 +1474,44 @@ public:
  */
 struct currbcip
 {
+    /**
+     * @brief The number of blocks to wait after a transaction to be sure that it is secure
+     */
     int64_t confirmations;
+
+    /**
+     * @brief The number of blocks to wait before giving up
+     */
     int64_t timeout;
+
+    /**
+     * @brief How many seconds old the chain can be before it is considered stale
+     */
     int64_t maxAge;
+
+    /**
+     * @brief The current age of the chain, in seconds
+     */
     int64_t currentAge;
+
+    /**
+     * @brief The current block number
+     */
     uint64_t currentBlock;
+
+    /**
+     * @brief The number of peers we are connected to
+     */
     int64_t peers;
+
+    /**
+     * @brief The number of the highest block we are aware of
+     */
     int64_t highestBlock;
+
+    /**
+     * @brief The current difficulty of mining a block
+     */
     int64_t difficulty;
 };
 
@@ -1511,13 +1542,44 @@ public:
         maxAge(cbcip.maxAge), currentAge(cbcip.currentAge), currentBlock(cbcip.currentBlock),
         peers(cbcip.peers), highestBlock(cbcip.highestBlock), difficulty(cbcip.difficulty) {}
 
+    /**
+     * @brief The number of blocks to wait after a transaction to be sure that it is secure
+     */
     int64_t confirmations;
+
+    /**
+     * @brief The number of blocks to wait before giving up
+     */
     int64_t timeout;
+
+    /**
+     * @brief How many seconds old the chain can be before it is considered stale
+     */
     int64_t maxAge;
+
+    /**
+     * @brief The current age of the chain, in seconds
+     */
     int64_t currentAge;
+
+    /**
+     * @brief The current block number
+     */
     uint64_t currentBlock;
+
+    /**
+     * @brief The number of peers we are connected to
+     */
     int64_t peers;
+
+    /**
+     * @brief The number of the highest block we are aware of
+     */
     int64_t highestBlock;
+
+    /**
+     * @brief The current difficulty of mining a block
+     */
     int64_t difficulty;
 };
 
