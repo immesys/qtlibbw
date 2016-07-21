@@ -1696,7 +1696,6 @@ void BW::setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t 
 
 void BW::setBCInteractionParams(qreal confirmations, qreal timeout, qreal maxAge, QJSValue on_done)
 {
-    using std::round;
     this->setBCInteractionParams((int64_t) round(confirmations), (int64_t) round(timeout),
                                  (int64_t) round(maxAge), [=](QString err, struct currbcip cbcip)
     {
