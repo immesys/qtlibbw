@@ -541,7 +541,7 @@ void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done)
     qreal expiryDelta = -1.0;
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
-    bool persist = params["Persist"].toBool();
+    bool leavePacked = params["LeavePacked"].toBool();
 
     if (params.contains("RoutingObjects"))
     {
@@ -558,7 +558,7 @@ void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done)
     }
 
     this->subscribeMsgPack(uri, primaryAccessChain, autoChain, roz, expiry,
-                           expiryDelta, elaboratePAC, doNotVerify, persist,
+                           expiryDelta, elaboratePAC, doNotVerify, leavePacked,
                            ERes<int, QVariantMap>(on_msg),
                            ERes<QString, QString>(on_done));
 }
@@ -696,7 +696,6 @@ void BW::buildChain(QString uri, QString permissions, QString to,
         sc->valid = false;
         if (f->checkResponse(on_done, sc, true))
         {
-            QVariantMap chain;
             QString hash = f->getHeaderS("hash");
             if (hash != QStringLiteral(""))
             {
@@ -708,11 +707,11 @@ void BW::buildChain(QString uri, QString permissions, QString to,
                 PayloadObject* po = f->getPayloadObjects().value(0);
                 if (po == nullptr)
                 {
-                    sc->content = QString("");
+                    sc->content = QByteArray();
                 }
                 else
                 {
-                    sc->content = QString(po->contentArray());
+                    sc->content = po->contentArray();
                 }
             }
             on_done("", sc, final);
@@ -1648,6 +1647,15 @@ void BW::getBCInteractionParams(Res<QString, struct currbcip> on_done)
     this->setBCInteractionParams(-1, -1, -1, on_done);
 }
 
+void BW::getBCInteractionParams(QJSValue on_done)
+{
+    this->getBCInteractionParams([=](QString err, struct currbcip cbcip)
+    {
+        auto cb = ERes<QString, BlockChainInteractionParams*>(on_done);
+        cb(err, new BlockChainInteractionParams(cbcip));
+    });
+}
+
 void BW::setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t maxAge, Res<QString, struct currbcip> on_done)
 {
     auto f = agent()->newFrame(Frame::BC_PARAMS);
@@ -1685,6 +1693,17 @@ void BW::setBCInteractionParams(int64_t confirmations, int64_t timeout, int64_t 
     });
 }
 
+void BW::setBCInteractionParams(qreal confirmations, qreal timeout, qreal maxAge, QJSValue on_done)
+{
+    using std::round;
+    this->setBCInteractionParams((int64_t) round(confirmations), (int64_t) round(timeout),
+                                 (int64_t) round(maxAge), [=](QString err, struct currbcip cbcip)
+    {
+        auto cb = ERes<QString, BlockChainInteractionParams*>(on_done);
+        cb(err, new BlockChainInteractionParams(cbcip));
+    });
+}
+
 void BW::transferEther(int from, QString to, double ether, Res<QString> on_done)
 {
     auto f = agent()->newFrame(Frame::TRANSFER);
@@ -1700,6 +1719,11 @@ void BW::transferEther(int from, QString to, double ether, Res<QString> on_done)
             on_done("");
         }
     });
+}
+
+void BW::transferEther(int from, QString to, double ether, QJSValue on_done)
+{
+    this->transferEther(from, to, ether, ERes<QString>(on_done));
 }
 
 void BW::newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done)
@@ -1723,6 +1747,11 @@ void BW::newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QSt
     });
 }
 
+void BW::newDesignatedRouterOffer(int account, QString nsvk, Entity* dr, QJSValue on_done)
+{
+    this->newDesignatedRouterOffer(account, nsvk, dr, ERes<QString>(on_done));
+}
+
 void BW::revokeDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<QString> on_done)
 {
     auto f = agent()->newFrame(Frame::REVOKE_DRO);
@@ -1742,6 +1771,11 @@ void BW::revokeDesignatedRouterOffer(int account, QString nsvk, Entity* dr, Res<
             on_done("");
         }
     });
+}
+
+void BW::revokeDesignatedRouterOffer(int account, QString nsvk, Entity* dr, QJSValue on_done)
+{
+    this->revokeDesignatedRouterOffer(account, nsvk, dr, ERes<QString>(on_done));
 }
 
 void BW::revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done)
@@ -1765,6 +1799,11 @@ void BW::revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Enti
     });
 }
 
+void BW::revokeAcceptanceOfDesignatedRouterOffer(int account, QString drvk, Entity* ns, QJSValue on_done)
+{
+    this->revokeAcceptanceOfDesignatedRouterOffer(account, drvk, ns, ERes<QString>(on_done));
+}
+
 void BW::revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done)
 {
     auto f = agent()->newFrame(Frame::REVOKE_RO);
@@ -1784,6 +1823,11 @@ void BW::revokeEntity(QString vk, Res<QString, QString, QByteArray> on_done)
             on_done("", hash, po->contentArray());
         }
     });
+}
+
+void BW::revokeEntity(QString vk, QJSValue on_done)
+{
+    this->revokeEntity(vk, ERes<QString, QString, QByteArray>(on_done));
 }
 
 void BW::revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done)
@@ -1807,6 +1851,11 @@ void BW::revokeDOT(QString hash, Res<QString, QString, QByteArray> on_done)
     });
 }
 
+void BW::revokeDOT(QString hash, QJSValue on_done)
+{
+    this->revokeDOT(hash, ERes<QString, QString, QByteArray>(on_done));
+}
+
 void BW::publishRevocation(int account, QByteArray blob, Res<QString, QString> on_done)
 {
     auto f = agent()->newFrame(Frame::PUT_REVOCATION);
@@ -1822,6 +1871,11 @@ void BW::publishRevocation(int account, QByteArray blob, Res<QString, QString> o
             on_done("", hash);
         }
     });
+}
+
+void BW::publishRevocation(int account, QByteArray blob, QJSValue on_done)
+{
+    this->publishRevocation(account, blob, ERes<QString, QString>(on_done));
 }
 
 void BW::getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, QList<QString>> on_done)
@@ -1848,6 +1902,11 @@ void BW::getDesignatedRouterOffers(QString nsvk, Res<QString, QString, QString, 
     });
 }
 
+void BW::getDesignatedRouterOffers(QString nsvk, QJSValue on_done)
+{
+    this->getDesignatedRouterOffers(nsvk, ERes<QString, QString, QString, QList<QString>>(on_done));
+}
+
 void BW::acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<QString> on_done)
 {
     auto f = agent()->newFrame(Frame::ACCEPT_DRO);
@@ -1867,6 +1926,11 @@ void BW::acceptDesignatedRouterOffer(int account, QString drvk, Entity* ns, Res<
             on_done("");
         }
     });
+}
+
+void BW::acceptDesignatedRouterOffer(int account, QString drvk, Entity *ns, QJSValue on_done)
+{
+    this->acceptDesignatedRouterOffer(account, drvk, ns, ERes<QString>(on_done));
 }
 
 void BW::setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<QString> on_done)
@@ -1890,6 +1954,11 @@ void BW::setDesignatedRouterSRVRecord(int account, QString srv, Entity* dr, Res<
     });
 }
 
+void BW::setDesignatedRouterSRVRecord(int account, QString srv, Entity *dr, QJSValue on_done)
+{
+    this->setDesignatedRouterSRVRecord(account, srv, dr, ERes<QString>(on_done));
+}
+
 void BW::createLongAlias(int account, QByteArray key, QByteArray val, Res<QString> on_done)
 {
     if (key.length() > 32 || val.length() > 32)
@@ -1909,6 +1978,11 @@ void BW::createLongAlias(int account, QByteArray key, QByteArray val, Res<QStrin
             on_done("");
         }
     });
+}
+
+void BW::createLongAlias(int account, QByteArray key, QByteArray val, QJSValue on_done)
+{
+    this->createLongAlias(account, key, val, ERes<QString>(on_done));
 }
 
 QString BW::getVK()
