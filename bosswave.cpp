@@ -111,7 +111,7 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
     QByteArray vk = e->vk;
     QByteArray remvk = QByteArray::fromBase64("gdIHa4kskW9_gAKm4liWnLPN7lQ8N4L2oqCCdK112fA=", QByteArray::Base64UrlEncoding);
     qDebug() << "doing RAGENT conn";
-    m_agent->beginRagentConnection(sk,vk,"ragent.cal-sdb.org",28590,remvk);
+    m_agent->beginRagentConnection(sk, vk, "ragent.cal-sdb.org", 28590, remvk);
 #else
     Q_UNUSED(ourentity);
     qDebug() << "doing normal conn";
@@ -378,7 +378,7 @@ void BW::publishMsgPack(QVariantMap params, QJSValue on_done)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QVariantMap payload = params["Payload"].toMap();
     int ponum = bwpo::num::MsgPack;
@@ -387,6 +387,11 @@ void BW::publishMsgPack(QVariantMap params, QJSValue on_done)
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
     bool persist = params["Persist"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
 
     if (params.contains("RoutingObjects"))
     {
@@ -426,7 +431,7 @@ void BW::publishText(QVariantMap params, QJSValue on_done)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QString payload = params["Payload"].toString();
     int ponum = bwpo::num::Text;
@@ -435,6 +440,11 @@ void BW::publishText(QVariantMap params, QJSValue on_done)
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
     bool persist = params["Persist"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
 
     if (params.contains("RoutingObjects"))
     {
@@ -536,13 +546,19 @@ void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QDateTime expiry = params["Expiry"].toDateTime();
     qreal expiryDelta = -1.0;
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
     bool leavePacked = params["LeavePacked"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
+
 
     if (params.contains("RoutingObjects"))
     {
@@ -584,13 +600,18 @@ void BW::subscribeText(QVariantMap params, QJSValue on_msg, QJSValue on_done)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QDateTime expiry = params["Expiry"].toDateTime();
     qreal expiryDelta = -1.0;
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
     bool persist = params["Persist"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
 
     if (params.contains("RoutingObjects"))
     {
@@ -850,13 +871,18 @@ void BW::queryMsgPack(QVariantMap params, QJSValue on_result)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QDateTime expiry = params["Expiry"].toDateTime();
     qreal expiryDelta = -1.0;
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
     bool leavePacked = params["LeavePacked"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
 
     if (params.contains("RoutingObjects"))
     {
@@ -906,13 +932,18 @@ void BW::queryText(QVariantMap params, QJSValue on_result)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QDateTime expiry = params["Expiry"].toDateTime();
     qreal expiryDelta = -1.0;
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
     bool leavePacked = params["LeavePacked"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
 
     if (params.contains("RoutingObjects"))
     {
@@ -1061,12 +1092,17 @@ void BW::list(QVariantMap params, QJSValue on_result)
 {
     QString uri = params["URI"].toString();
     QString primaryAccessChain = params["PrimaryAccessChain"].toString();
-    bool autoChain = params["AutoChain"].toBool();
+    bool autoChain = true;
     QList<RoutingObject*> roz;
     QDateTime expiry = params["Expiry"].toDateTime();
     qreal expiryDelta = -1.0;
     QString elaboratePAC = params["ElaboratePAC"].toString();
     bool doNotVerify = params["DoNotVerify"].toBool();
+
+    if (params.contains("AutoChain"))
+    {
+        autoChain = params["AutoChain"].toBool();
+    }
 
     if (params.contains("RoutingObjects"))
     {
@@ -2069,5 +2105,3 @@ const QVariantList& BWView::interfaces()
 {
     return m_interfaces;
 }
-
-
