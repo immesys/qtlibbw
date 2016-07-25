@@ -385,7 +385,7 @@ public:
 
     /**
      * @brief Unsubscribe from a resource
-     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param handle The handle obtained from the on_done callback parameter to subscribe
      * @param on_done The callback to be executed with the error message. "" implies success.
      *
      * @ingroup cpp
@@ -395,7 +395,7 @@ public:
 
     /**
      * @brief Unsubscribe from a resource
-     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param handle The handle obtained from the on_done callback parameter to subscribe
      * @param on_done The callback to be executed with the error message. "" implies success.
      *
      * @ingroup qml
