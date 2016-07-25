@@ -103,9 +103,10 @@ public:
      * @return The integer PONum
      *
      * @ingroup cpp
-     * @since 1.0
+     * @ingroup qml
+     * @since 1.4
      */
-    static int fromDF(QString df);
+    Q_INVOKABLE static int fromDF(QString df);
 
     /**
      * @brief Connect to a BOSSWAVE agent
@@ -328,7 +329,7 @@ public:
      * @param doNotVerify If false, the router will verify this message as if it were hostile
      * @param leavePacked If true, the POs and ROs are left in the bosswave format
      * @param on_msg The callback that is executed when a message is received, with two arguments: (1) the PO number, and (2) the unpacked contents
-     * @param on_done The callback that is executed when the subscribe process is complete
+     * @param on_done The callback that is executed when the subscribe process is complete. First argument is an error message, or the empty string if no error occurred. Second argument is the subscription handle.
      *
      * @ingroup cpp
      * @since 1.4
@@ -342,7 +343,7 @@ public:
      * @brief Subscribe to a MsgPack resource
      * @param params A map of parameters. Keys are: (1) URI, (2) PrimaryAccessChain, (3) AutoChain, (4) RoutingObjects, (5) Expiry, (6) ExpiryDelta, (7) ElaboratePAC, (8) DoNotVerify, and (9) LeavePacked
      * @param on_msg Javascript callback invoked on the arrival of each message with two arguments: (1) the payload object number, and (2) the payload as an object
-     * @param on_done Javascript callback invoked when the subscription process is complete. Takes a single argument: an error message, or the empty string if no error occurred
+     * @param on_done The callback that is executed when the subscribe process is complete. First argument is an error message, or the empty string if no error occurred. Second argument is the subscription handle.
      *
      * @ingroup qml
      * @since 1.4
@@ -361,7 +362,7 @@ public:
      * @param doNotVerify If false, the router will verify this message as if it were hostile
      * @param leavePacked If true, the POs and ROs are left in the bosswave format
      * @param on_msg The callback that is executed when a message is received, with two arguments: (1) the PO number, and (2) the text contents
-     * @param on_done The callback that is executed when the subscribe process is complete. It takes one argument: an error message, or the empty string if there was no error
+     * @param on_done The callback that is executed when the subscribe process is complete. First argument is an error message, or the empty string if no error occurred. Second argument is the subscription handle.
      *
      * @ingroup cpp
      * @since 1.4
@@ -375,7 +376,7 @@ public:
      * @brief Javascript version of subscribeText
      * @param params A map of parameters. Keys are: (1) URI, (2) PrimaryAccessChain, (3) AutoChain, (4) RoutingObjects, (5) Expiry, (6) ExpiryDelta, (7) ElaboratePAC, (8) DoNotVerify, and (9) LeavePacked
      * @param on_msg Javascript callback invoked on the arrival of each message with two arguments: (1) the payload object number, and (2) the payload as a String
-     * @param on_done Javascript callback invoked when the subscription process is complete. Takes a single argument: an error message, or the empty string if no error occurred
+     * @param on_done The callback that is executed when the subscribe process is complete. First argument is an error message, or the empty string if no error occurred. Second argument is the subscription handle.
      *
      * @ingroup qml
      * @since 1.4
@@ -384,7 +385,7 @@ public:
 
     /**
      * @brief Unsubscribe from a resource
-     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param handle The handle obtained from the on_done callback parameter to subscribe
      * @param on_done The callback to be executed with the error message. "" implies success.
      *
      * @ingroup cpp
@@ -394,7 +395,7 @@ public:
 
     /**
      * @brief Unsubscribe from a resource
-     * @param handle The handle obtained from the on_handle callback parameter to subscribe
+     * @param handle The handle obtained from the on_done callback parameter to subscribe
      * @param on_done The callback to be executed with the error message. "" implies success.
      *
      * @ingroup qml
