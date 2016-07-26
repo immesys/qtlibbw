@@ -2076,7 +2076,7 @@ void BWView::onChange()
         foreach(auto po, m->FilterPOs(bwpo::num::InterfaceDescriptor)) {
             QVariant v = MsgPack::unpack(po->contentArray());
             QVariantMap vm = v.toMap();
-         //   qDebug() << "map thingy: " << vm;
+            //qDebug() << "map thingy: " << vm;
             //How long is the /ifacename/iface string?
             int suffixlen = vm["prefix"].toString().length() + vm["iface"].toString().length() + 2;
             QString sname = vm["suffix"].toString();
@@ -2091,7 +2091,7 @@ void BWView::onChange()
             emit servicesChanged();
         }
         emit interfacesChanged();
-        qDebug() << "interfaces: " << m_interfaces;
+        //qDebug() << "interfaces: " << m_interfaces;
        // qDebug() << "services:" << m_services;
     });
 }
