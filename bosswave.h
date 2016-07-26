@@ -1444,7 +1444,7 @@ public:
     {
         QVariantMap metadata;
         metadata["val"] = this->value;
-        metadata["ts"] = QVariant::fromValue(this->timestamp);
+        metadata["ts"] = QVariant::fromValue((qlonglong) this->timestamp);
         return metadata;
     }
 
