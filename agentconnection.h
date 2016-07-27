@@ -1,6 +1,7 @@
 #ifndef QTLIBBW_AGENTCONNECTION_H
 #define QTLIBBW_AGENTCONNECTION_H
 
+#include <QCoreApplication>
 #include <QObject>
 #include <QDebug>
 #include <QSharedPointer>
@@ -164,37 +165,41 @@ template <typename ...Tz>
 class Res
 {
 public:
-    Res() : jscb(nullptr)
+    Res()
     {
         wrap = [](Tz...){};
     }
-    Res(std::function<void(Tz...)> cb) : jscb(nullptr)
+    Res(std::function<void(Tz...)> cb)
     {
         wrap = cb;
     }
     template <typename F>
     Res(F f) : Res(std::function<void(Tz...)>(f)) {}
-    Res(QJSEngine* e, const QJSValue& callback) : jscb(new QJSValue(callback))
+    Res(QJSEngine* e, QJSValue callback)
     {
-        auto cb = jscb;
-        if (!jscb->isCallable())
+        if (!callback.isCallable())
         {
             qFatal("Trying to construct Res with non function JS Value");
         }
-        wrap = [cb, e](Tz... args)
+        wrap = [=](Tz... args) mutable
         {
             QJSValueList l;
             convertE(e, l, args...);
-            cb->call(l);
+            callback.call(l);
         };
     }
+    Res(const Res& other)
+    {
+        Q_ASSERT(QThread::currentThread() == QCoreApplication::instance()->thread());
+        this->wrap = other.wrap;
+    }
+
     void operator() (Tz ...args) const
     {
         wrap(args...);
     }
 private:
     std::function<void(Tz...)> wrap;
-    QSharedPointer<QJSValue> jscb;
 };
 
 class Frame
@@ -395,7 +400,6 @@ public:
         QMetaObject::invokeMethod(this,"initSock");
     }
 
-    void transact(PFrame f, function<void(PFrame f, bool final)> cb);
     void transact(QObject *to, PFrame f, function<void(PFrame f, bool final)> cb);
     PFrame newFrame(const char *type, quint32 seqno=0);
 private:
@@ -409,6 +413,7 @@ private:
     PFrame  curFrame;
     int waitingFor;
     QHash<quint32, function<void(PFrame f, bool final)>> outstanding;
+    void transact(PFrame f, function<void(PFrame f, bool final)> cb);
     void onArrivedFrame(PFrame f);
     bool have_received_helo;
     QString m_desthost;
@@ -423,7 +428,7 @@ private slots:
     void onError();
     void onArrivedData();
     void initSock();
-    void doTransact(PFrame f, function<void(PFrame,bool)> cb);
+    void doTransact(PFrame f);
     void onSslErrors(QList<QSslError> errs);
 signals:
     void agentChanged(bool connected, QString msg);

@@ -9,6 +9,18 @@
 
 using std::function;
 
+template<typename... Tz> void invokeOnThread(QThread* t, function<void (Tz...)> f, Tz... args)
+{
+    QTimer* timer = new QTimer();
+    timer->moveToThread(t);
+    timer->setSingleShot(true);
+    QObject::connect(timer, &QTimer::timeout, [=]{
+        f(args...);
+        timer->deleteLater();
+    });
+    QMetaObject::invokeMethod(timer, "start", Qt::QueuedConnection, Q_ARG(int, 0));
+}
+
 template <typename F, typename ...R> void convert(QJSValueList &l, F f, R... rest)
 {
     l.append(QJSValue(f));

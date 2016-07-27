@@ -1369,7 +1369,7 @@ private:
     AgentConnection *m_agent;
     QString m_vk;
 
-    template <typename ...Tz> Res<Tz...> ERes(const QJSValue& callback)
+    template <typename ...Tz> Res<Tz...> ERes(QJSValue callback)
     {
         return Res<Tz...>(jsengine, callback);
     }
@@ -1717,8 +1717,9 @@ class BWView : public QObject
     Q_PROPERTY(QStringList services READ services NOTIFY servicesChanged)
 
 public:
-    BWView(BW* parent) : QObject(parent), bw(parent) {
-
+    BWView(BW* parent) : QObject(parent), bw(parent)
+    {
+        Q_ASSERT(this->thread() == QCoreApplication::instance()->thread());
     }
     const QStringList& services();
     const QVariantList& interfaces();
