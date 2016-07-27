@@ -9,7 +9,7 @@
 #include <string>
 #include <functional>
 #include <QJSValue>
-#include <QQmlEngine>
+#include <QJSEngine>
 #include <QSslError>
 using std::function;
 
@@ -174,7 +174,7 @@ public:
     }
     template <typename F>
     Res(F f) : Res(std::function<void(Tz...)>(f)) {}
-    Res(QQmlEngine* e, const QJSValue& callback) : jscb(new QJSValue(callback))
+    Res(QJSEngine* e, const QJSValue& callback) : jscb(new QJSValue(callback))
     {
         auto cb = jscb;
         if (!jscb->isCallable())

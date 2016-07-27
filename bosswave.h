@@ -1371,7 +1371,7 @@ private:
 
     template <typename ...Tz> Res<Tz...> ERes(const QJSValue& callback)
     {
-        return Res<Tz...>(engine, callback);
+        return Res<Tz...>(jsengine, callback);
     }
 
     static Res<QString> _nop_res_status;
