@@ -164,44 +164,28 @@ template <typename ...Tz>
 class Res
 {
 public:
-    Res()
+    Res() : jscb(nullptr)
     {
         wrap = [](Tz...){};
     }
-    Res(std::function<void(Tz...)> cb)
+    Res(std::function<void(Tz...)> cb) : jscb(nullptr)
     {
         wrap = cb;
     }
     template <typename F>
     Res(F f) : Res(std::function<void(Tz...)>(f)) {}
-    Res(QJSValue callback)
+    Res(QQmlEngine* e, const QJSValue& callback) : jscb(new QJSValue(callback))
     {
-        qDebug() << "calling res with QJS";
-        if (!callback.isCallable())
+        auto cb = jscb;
+        if (!jscb->isCallable())
         {
             qFatal("Trying to construct Res with non function JS Value");
         }
-        wrap = [=](Tz... args) mutable
+        wrap = [cb, e](Tz... args)
         {
-            qDebug() << "callback invoked";
-            QJSValueList l;
-            convert(l, args...);
-            callback.call(l);
-        };
-    }
-    Res(QQmlEngine* e, QJSValue callback)
-    {
-        qDebug() << "calling res with EQJS";
-        if (!callback.isCallable())
-        {
-            qFatal("Trying to construct Res with non function JS Value");
-        }
-        wrap = [=](Tz... args) mutable
-        {
-            qDebug() << "callback2 invoked";
             QJSValueList l;
             convertE(e, l, args...);
-            callback.call(l);
+            cb->call(l);
         };
     }
     void operator() (Tz ...args) const
@@ -210,6 +194,7 @@ public:
     }
 private:
     std::function<void(Tz...)> wrap;
+    QSharedPointer<QJSValue> jscb;
 };
 
 class Frame

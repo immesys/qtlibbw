@@ -1369,7 +1369,7 @@ private:
     AgentConnection *m_agent;
     QString m_vk;
 
-    template <typename ...Tz> Res<Tz...> ERes(QJSValue callback)
+    template <typename ...Tz> Res<Tz...> ERes(const QJSValue& callback)
     {
         return Res<Tz...>(engine, callback);
     }
