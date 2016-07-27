@@ -2,10 +2,14 @@
 #include "message.h"
 #include "allocations.h"
 
+#include <QCoreApplication>
 #include <QtEndian>
 #include <QTimer>
 #include <QSslSocket>
 #include <crypto.h>
+#include <utils.h>
+
+#include <functional>
 
 Entity::Entity(int ronum, const char *data, int length, QObject* parent)
     : RoutingObject(ronum, data, length, parent)
@@ -272,7 +276,11 @@ void AgentConnection::onArrivedData()
             //This frame is finished
             auto nf = curFrame;
             curFrame.reset();
-            onArrivedFrame(nf);
+            invokeOnThread(QCoreApplication::instance()->thread(),
+                           std::function<void (PFrame)>([this](PFrame f)
+                           {
+                               this->onArrivedFrame(f);
+                           }), nf);
             QMetaObject::invokeMethod(this,"onArrivedData",Qt::QueuedConnection);
             return;
         }
@@ -325,6 +333,8 @@ void AgentConnection::onSslErrors(QList<QSslError> errs)
 
 void AgentConnection::onArrivedFrame(PFrame f)
 {
+    Q_ASSERT(QThread::currentThread() == QCoreApplication::instance()->thread());
+
     //We need to determine which transaction this belongs to, and forward the frame there.
     if (f->isType(Frame::HELLO))
     {
@@ -344,31 +354,34 @@ void AgentConnection::onArrivedFrame(PFrame f)
 }
 void AgentConnection::transact(PFrame f, function<void (PFrame, bool)> cb)
 {
+    Q_ASSERT(QThread::currentThread() == QCoreApplication::instance()->thread());
+
+    outstanding[f->seqno()] = cb;
+
     //We want to move this to a different thread if we are not on the agent's thread
-    QMetaObject::invokeMethod(this, "doTransact", Q_ARG(PFrame, f), Q_ARG(function<void(PFrame,bool)>, cb));
+    QMetaObject::invokeMethod(this, "doTransact", Q_ARG(PFrame, f));
 }
 
 void AgentConnection::transact(QObject *to, PFrame f, function<void (PFrame, bool)> cb)
 {
     //Basically the callback to transact will wrap the real callback, and move it
     //to the thread that 'to' lives in (probably the GUI thread).
-    transact(f, [=](PFrame f, bool fin){
-       QTimer *t = new QTimer();
-       t->moveToThread(to->thread());
-       t->setSingleShot(true);
-       connect(t, &QTimer::timeout, [=]{
-           cb(f, fin);
-           t->deleteLater();
-       });
-       QMetaObject::invokeMethod(t, "start", Qt::QueuedConnection, Q_ARG(int, 0));
-    });
+    auto safecb = [=](PFrame f, bool fin)
+    {
+        invokeOnThread(to->thread(), cb, f, fin);
+    };
+
+    invokeOnThread(QCoreApplication::instance()->thread(),
+                   std::function<void()>([=]()
+                   {
+                       this->transact(f, safecb);
+                   }));
 }
 
-void AgentConnection::doTransact(PFrame f, function<void (PFrame, bool)> cb)
+void AgentConnection::doTransact(PFrame f)
 {
     Q_ASSERT(QThread::currentThread() == this->m_thread);
     //Now that we know we are on the right thread, there is no need to lock on the socket access
-    outstanding[f->seqno()] = cb;
     f->writeTo(sock);
 }
 void Frame::writeTo(QIODevice *o)

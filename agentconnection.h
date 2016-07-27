@@ -1,6 +1,7 @@
 #ifndef QTLIBBW_AGENTCONNECTION_H
 #define QTLIBBW_AGENTCONNECTION_H
 
+#include <QCoreApplication>
 #include <QObject>
 #include <QDebug>
 #include <QSharedPointer>
@@ -174,36 +175,25 @@ public:
     }
     template <typename F>
     Res(F f) : Res(std::function<void(Tz...)>(f)) {}
-    Res(QJSValue callback)
-    {
-        qDebug() << "calling res with QJS";
-        if (!callback.isCallable())
-        {
-            qFatal("Trying to construct Res with non function JS Value");
-        }
-        wrap = [=](Tz... args) mutable
-        {
-            qDebug() << "callback invoked";
-            QJSValueList l;
-            convert(l, args...);
-            callback.call(l);
-        };
-    }
     Res(QJSEngine* e, QJSValue callback)
     {
-        qDebug() << "calling res with EQJS";
         if (!callback.isCallable())
         {
             qFatal("Trying to construct Res with non function JS Value");
         }
         wrap = [=](Tz... args) mutable
         {
-            qDebug() << "callback2 invoked";
             QJSValueList l;
             convertE(e, l, args...);
             callback.call(l);
         };
     }
+    Res(const Res& other)
+    {
+        Q_ASSERT(QThread::currentThread() == QCoreApplication::instance()->thread());
+        this->wrap = other.wrap;
+    }
+
     void operator() (Tz ...args) const
     {
         wrap(args...);
@@ -410,7 +400,6 @@ public:
         QMetaObject::invokeMethod(this,"initSock");
     }
 
-    void transact(PFrame f, function<void(PFrame f, bool final)> cb);
     void transact(QObject *to, PFrame f, function<void(PFrame f, bool final)> cb);
     PFrame newFrame(const char *type, quint32 seqno=0);
 private:
@@ -424,6 +413,7 @@ private:
     PFrame  curFrame;
     int waitingFor;
     QHash<quint32, function<void(PFrame f, bool final)>> outstanding;
+    void transact(PFrame f, function<void(PFrame f, bool final)> cb);
     void onArrivedFrame(PFrame f);
     bool have_received_helo;
     QString m_desthost;
@@ -438,7 +428,7 @@ private slots:
     void onError();
     void onArrivedData();
     void initSock();
-    void doTransact(PFrame f, function<void(PFrame,bool)> cb);
+    void doTransact(PFrame f);
     void onSslErrors(QList<QSslError> errs);
 signals:
     void agentChanged(bool connected, QString msg);
