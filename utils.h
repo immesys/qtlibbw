@@ -4,10 +4,22 @@
 #include <QJSValue>
 #include <QJSValueList>
 #include <functional>
-#include <QQmlEngine>
+#include <QJSEngine>
 
 
 using std::function;
+
+template<typename... Tz> void invokeOnThread(QThread* t, function<void (Tz...)> f, Tz... args)
+{
+    QTimer* timer = new QTimer();
+    timer->moveToThread(t);
+    timer->setSingleShot(true);
+    QObject::connect(timer, &QTimer::timeout, [=]{
+        f(args...);
+        timer->deleteLater();
+    });
+    QMetaObject::invokeMethod(timer, "start", Qt::QueuedConnection, Q_ARG(int, 0));
+}
 
 template <typename F, typename ...R> void convert(QJSValueList &l, F f, R... rest)
 {
@@ -18,12 +30,12 @@ template <typename F> void convert(QJSValueList &l, F f)
 {
     l.append(QJSValue(f));
 }
-template <typename F, typename ...R> void convertE(QQmlEngine* e, QJSValueList &l, F f, R... rest)
+template <typename F, typename ...R> void convertE(QJSEngine* e, QJSValueList &l, F f, R... rest)
 {
     l.append(e->toScriptValue(f));
     convertE(e, l, rest...);
 }
-template <typename F> void convertE(QQmlEngine* e, QJSValueList &l, F f)
+template <typename F> void convertE(QJSEngine* e, QJSValueList &l, F f)
 {
     l.append(e->toScriptValue(f));
 }

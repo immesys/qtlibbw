@@ -52,12 +52,12 @@ private:
     const char* msg;
 };
 
-Res<QString> BW::_nop_res_status;
+Res<QString> BW::_nop_res_status([](QString) {});
 
 BW::BW(QObject *parent):
     QObject(parent)
 {
-    _nop_res_status = [](QString) {};
+    Q_ASSERT(this->thread() == QCoreApplication::instance()->thread());
     m_agent = NULL;
 }
 
