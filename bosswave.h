@@ -336,7 +336,7 @@ public:
      */
     void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                           QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
-                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
+                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap, QVariantMap> on_msg,
                           Res<QString, QString> on_done = _nop_res_status);
 
     /**

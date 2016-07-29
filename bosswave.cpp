@@ -527,7 +527,7 @@ void BW::subscribe(QString uri, QString primaryAccessChain, bool autoChain, QLis
 
 void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                           QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
-                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap> on_msg,
+                          bool doNotVerify, bool leavePacked, Res<int, QVariantMap, QVariantMap> on_msg,
                           Res<QString, QString> on_done)
 {
     BW::subscribe(uri, primaryAccessChain, autoChain, roz, expiry,
@@ -537,7 +537,10 @@ void BW::subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChai
         foreach(auto po, m->FilterPOs(bwpo::num::MsgPack, bwpo::mask::MsgPack))
         {
             QVariant v = MsgPack::unpack(po->contentArray());
-            on_msg(po->ponum(), v.toMap());
+            QMap<QString,QVariant> minfo;
+            minfo[QString("uri")] = m->getHeaderS("uri");
+            minfo[QString("from")] = m->getHeaderS("from");
+            on_msg(po->ponum(), v.toMap(), minfo);
         }
     }, on_done);
 }
@@ -576,7 +579,7 @@ void BW::subscribeMsgPack(QVariantMap params, QJSValue on_msg, QJSValue on_done)
 
     this->subscribeMsgPack(uri, primaryAccessChain, autoChain, roz, expiry,
                            expiryDelta, elaboratePAC, doNotVerify, leavePacked,
-                           ERes<int, QVariantMap>(on_msg),
+                           ERes<int, QVariantMap, QVariantMap>(on_msg),
                            ERes<QString, QString>(on_done));
 }
 
