@@ -315,7 +315,7 @@ public:
     void subscribe(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                    QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                    bool doNotVerify, bool leavePacked, Res<PMessage> on_msg,
-                   Res<QString, QString> on_done = _nop_res_status);
+                   Res<QString, QString> on_done = _nop_res_status2);
 
     /**
      * @brief Subscribe to a MsgPack resource
@@ -337,7 +337,7 @@ public:
     void subscribeMsgPack(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                           QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                           bool doNotVerify, bool leavePacked, Res<int, QVariantMap, QVariantMap> on_msg,
-                          Res<QString, QString> on_done = _nop_res_status);
+                          Res<QString, QString> on_done = _nop_res_status2);
 
     /**
      * @brief Subscribe to a MsgPack resource
@@ -370,7 +370,7 @@ public:
     void subscribeText(QString uri, QString primaryAccessChain, bool autoChain, QList<RoutingObject*> roz,
                        QDateTime expiry, qreal expiryDelta, QString elaboratePAC,
                        bool doNotVerify, bool leavePacked, Res<int, QString> on_msg,
-                       Res<QString, QString> on_done = _nop_res_status);
+                       Res<QString, QString> on_done = _nop_res_status2);
 
     /**
      * @brief Javascript version of subscribeText
@@ -1375,6 +1375,7 @@ private:
     }
 
     static Res<QString> _nop_res_status;
+    static Res<QString, QString> _nop_res_status2;
     friend BWView;
 };
 

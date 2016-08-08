@@ -54,6 +54,8 @@ private:
 
 Res<QString> BW::_nop_res_status([](QString) {});
 
+Res<QString, QString> BW::_nop_res_status2([](QString,QString) {});
+
 BW::BW(QObject *parent):
     QObject(parent)
 {
