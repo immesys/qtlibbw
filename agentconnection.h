@@ -165,17 +165,17 @@ template <typename ...Tz>
 class Res
 {
 public:
-    Res()
+    Res(): javascript(false)
     {
         wrap = [](Tz...){};
     }
-    Res(std::function<void(Tz...)> cb)
+    Res(std::function<void(Tz...)> cb): javascript(false)
     {
         wrap = cb;
     }
     template <typename F>
     Res(F f) : Res(std::function<void(Tz...)>(f)) {}
-    Res(QJSEngine* e, QJSValue callback)
+    Res(QJSEngine* e, QJSValue callback): javascript(true)
     {
         if (!callback.isCallable())
         {
@@ -190,8 +190,12 @@ public:
     }
     Res(const Res& other)
     {
-        Q_ASSERT(QThread::currentThread() == QCoreApplication::instance()->thread());
+        if (other.javascript)
+        {
+            Q_ASSERT(QThread::currentThread() == QCoreApplication::instance()->thread());
+        }
         this->wrap = other.wrap;
+        this->javascript = other.javascript;
     }
 
     void operator() (Tz ...args) const
@@ -200,6 +204,7 @@ public:
     }
 private:
     std::function<void(Tz...)> wrap;
+    bool javascript;
 };
 
 class Frame
