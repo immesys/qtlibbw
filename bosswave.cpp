@@ -3,6 +3,7 @@
 #include "allocations.h"
 
 #include <QFile>
+#include <QProcessEnvironment>
 #include <QQmlEngine>
 
 #include <msgpack.h>
@@ -102,6 +103,7 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
         m_agent->deleteLater();
         m_agent = NULL;
     }
+    QProcessEnvironment qpe = QProcessEnvironment::systemEnvironment();
     m_agent = new AgentConnection();
     connect(m_agent,&AgentConnection::agentChanged,this,&BW::agentChanged);
 #ifdef Q_OS_ANDROID
@@ -117,7 +119,24 @@ void BW::connectAgent(QByteArray &ourentity)//QString host, quint16 port)
 #else
     Q_UNUSED(ourentity);
     qDebug() << "doing normal conn";
-    m_agent->beginConnection("localhost",28589);
+    QString hostcolonport = qpe.value("BW2_AGENT", "");
+    if (hostcolonport.isEmpty())
+    {
+        m_agent->beginConnection("localhost",28589);
+    }
+    else
+    {
+        QStringList parts = hostcolonport.split(":");
+        if (parts.length() != 2) {
+            qFatal("$BW2_AGENT is improperly set");
+        }
+        bool ok;
+        int port = parts[1].toInt(&ok);
+        if (!ok || port < 0 || port > 65535) {
+            qFatal("Invalid port in $BW2_AGENT");
+        }
+        m_agent->beginConnection(parts[0], port);
+    }
 #endif
 }
 
